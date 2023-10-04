@@ -12,13 +12,13 @@ pub struct Interface {
     pub broadcast_addr: Ipv4Addr
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeviceInfo {
     pub hostname: String,
     pub ifs: Vec<Interface>
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct RemoteDevice {
     pub hostname: String,
     pub ip: String
@@ -62,9 +62,10 @@ impl DeviceInfo {
         let remote: RemoteDevice = serde_json::from_str(&json_str).unwrap();
         remote
     }
-    // pub fn to_json(&self) -> String {
-    //     serde_json::to_string(&self).unwrap()
-    // }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
 }
 
 fn calc_broadcast_addr(addr: Ipv4Addr, netmask: Ipv4Addr) -> Ipv4Addr {
