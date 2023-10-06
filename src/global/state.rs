@@ -10,7 +10,7 @@ lazy_static! {
 pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
-    remote_peer: Option<RemoteDevice>,
+    pub remote_peer: Option<RemoteDevice>,
 }
 
 impl State {

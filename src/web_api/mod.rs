@@ -1,7 +1,7 @@
 pub mod device {
     use actix_web::{get, HttpResponse, Responder, web};
 
-    use crate::global::{self, state::STATE};
+    use crate::global::state::STATE;
 
     #[get("/device")]
     pub async fn get(req_body: String) -> impl Responder {
@@ -16,7 +16,7 @@ pub mod device {
 pub mod remotes {
     use actix_web::{get, HttpResponse, Responder, web, put, delete};
 
-    use crate::global::{self, state::{State, STATE}};
+    use crate::global::state::STATE;
 
     #[get("/remotes")]
     pub async fn get() -> impl Responder {
@@ -24,6 +24,12 @@ pub mod remotes {
         // web::Json(res)
         HttpResponse::Ok().json(remotes)
     }
+}
+
+pub mod remote_peer {
+    use actix_web::{get, HttpResponse, Responder, web, put, delete};
+
+    use crate::global::state::STATE;
 
     #[put("/remote_peer/{ip}")]
     pub async fn put(ip: web::Path<String>) -> impl Responder {
@@ -38,5 +44,17 @@ pub mod remotes {
         let mut state = STATE.lock().unwrap();
         state.set_remote_peer(None);
         HttpResponse::Ok().json(())
+    }
+
+    #[get("/remote_peer")]
+    pub async fn get() -> impl Responder {
+        match STATE.lock().unwrap().remote_peer.as_ref() {
+            Some(p) => {
+                HttpResponse::Ok().json(p)
+            },
+            None => {
+                HttpResponse::Ok().json(())
+            }
+        }
     }
 }
