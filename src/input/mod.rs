@@ -6,9 +6,10 @@ mod listener;
 mod clipboard;
 
 pub fn init() {
-    thread::spawn(|| {
-        listener::init();
-    });
+    listener::init();
+    // thread::spawn(|| {
+    //     listener::init();
+    // });
     // thread::spawn(|| {
     //     clipboard::init();
     // });

@@ -37,7 +37,7 @@ impl UDPServer {
             //     .iter()
             //     .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
             {
-                println!("{} - {:?}", Local::now(), bytes);
+                // println!("{} - {:?}", Local::now(), bytes);
                 cb(bytes);
             }
         }

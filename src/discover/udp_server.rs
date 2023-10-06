@@ -34,7 +34,7 @@ impl UDPServer {
                 .iter()
                 .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
             {
-                println!("{} - {:?}", Local::now(), remote);
+                // println!("{} - {:?}", Local::now(), remote);
                 state.add_remote(remote);
             }
         }
