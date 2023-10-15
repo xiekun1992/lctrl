@@ -18,6 +18,8 @@ extern "C" {
     // fn listener_dispose();
     // fn listener_close();
     fn listener_setBlock(block: c_int);
+
+    fn get_screen_size(size: *const c_int);
 }
 
 #[link(name = "libinput")]
@@ -36,13 +38,23 @@ extern "C" {
 use chrono::Local;
 use lazy_static::lazy_static;
 
+#[derive(Debug)]
+pub enum ControlSide {
+    NONE,
+    LEFT,
+    RIGHT
+}
+
 lazy_static! {
     static ref SERVER: UDPServer = UDPServer::new(String::from("0.0.0.0"), 1233);
 }
+static mut SCREEN_SIZE: [i32; 2] = [0, 0];
+static mut POS_IN_REMOTE_SCREEN: [i32; 2] = [0, 0];
+pub static mut BLOCK: bool = false;
+pub static mut SIDE: ControlSide = ControlSide::NONE;
 
-fn send_to_remote(ev: *const c_long, num_of_elements: usize) {
+fn send_to_remote(ev: &[i32]) {
     unsafe {
-        let ev = slice::from_raw_parts(ev, num_of_elements);
         let bytes =
             slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>());
         // println!("{:?}", bytes);
@@ -108,16 +120,93 @@ fn cb(bytes: &[u8]) {
 }
 
 extern "C" fn mouse_handler(ev: *const c_long) {
-    send_to_remote(ev, 5);
-    println!("mouse");
+    unsafe {
+        let ev = slice::from_raw_parts(ev, 5);
+
+        println!("BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}", BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]);
+
+        if BLOCK { // mousemoverel
+            if ev[0] == 6 {
+                POS_IN_REMOTE_SCREEN[0] += ev[1];
+                POS_IN_REMOTE_SCREEN[1] += ev[2];
+
+                match SIDE {
+                    ControlSide::LEFT => {
+                        if POS_IN_REMOTE_SCREEN[0] > SCREEN_SIZE[0] {
+                            listener_setBlock(0);
+                            BLOCK = false;
+                            POS_IN_REMOTE_SCREEN[0] = SCREEN_SIZE[0];
+                        }
+                    }
+                    ControlSide::RIGHT => {
+                        if POS_IN_REMOTE_SCREEN[0] < 0 {
+                            listener_setBlock(0);
+                            BLOCK = false;
+                            POS_IN_REMOTE_SCREEN[0] = 0;
+                        }
+                    }
+                    _ => {}
+                }
+                if POS_IN_REMOTE_SCREEN[0] < 0 {
+                    POS_IN_REMOTE_SCREEN[0] = 0;
+                }
+                if POS_IN_REMOTE_SCREEN[0] > SCREEN_SIZE[0] {
+                    POS_IN_REMOTE_SCREEN[0] = SCREEN_SIZE[0];
+                }
+                if POS_IN_REMOTE_SCREEN[1] < 0 {
+                    POS_IN_REMOTE_SCREEN[1] = 0;
+                } 
+                if POS_IN_REMOTE_SCREEN[1] > SCREEN_SIZE[1] {
+                    POS_IN_REMOTE_SCREEN[1] = SCREEN_SIZE[1];
+                }
+                let x = (POS_IN_REMOTE_SCREEN[0] as f32 / SCREEN_SIZE[0] as f32 * 1366.0) as i32;
+                let y = (POS_IN_REMOTE_SCREEN[1] as f32 / SCREEN_SIZE[1] as f32 * 768.0) as i32;
+                println!("POS_IN_REMOTE_SCREEN={}, SCREEN_SIZE={}, x={}, y={}",POS_IN_REMOTE_SCREEN[1], SCREEN_SIZE[1], x, y);
+                let bytes_to_send = [1, x, y];
+                send_to_remote(bytes_to_send.as_slice());
+            } else if ev[0] != 1 {
+                send_to_remote(ev);
+            }
+        }
+
+        if !BLOCK && ev[0] == 1 { // mousemove
+            match SIDE {
+                ControlSide::LEFT => {
+                    if ev[1] <= 0 {
+                        listener_setBlock(1);
+                        POS_IN_REMOTE_SCREEN[0] = SCREEN_SIZE[0];
+                        POS_IN_REMOTE_SCREEN[1] = SCREEN_SIZE[1];
+                        BLOCK = true;
+                    }
+                }
+                ControlSide::RIGHT => {
+                    if ev[1] >= SCREEN_SIZE[0] {
+                        listener_setBlock(1);
+                        POS_IN_REMOTE_SCREEN[0] = 0;
+                        POS_IN_REMOTE_SCREEN[1] = SCREEN_SIZE[1];
+                        BLOCK = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 extern "C" fn keyboard_handler(ev: *const c_long) {
-    send_to_remote(ev, 3);
-    println!("keyboard");
+    unsafe {
+        if BLOCK {
+            let ev = slice::from_raw_parts(ev, 3);
+            send_to_remote(ev);
+        }
+    }
 }
 
 pub fn init() {
+    unsafe {
+        get_screen_size(SCREEN_SIZE.as_mut_ptr());
+    }
+
     thread::spawn(|| {
         unsafe {
             listener_init(mouse_handler, keyboard_handler);

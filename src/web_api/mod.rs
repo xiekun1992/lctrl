@@ -28,7 +28,7 @@ pub mod remotes {
 
 pub mod remote_peer {
     use actix_web::{get, HttpResponse, Responder, web, put, delete};
-
+    use crate::input::listener::{BLOCK, ControlSide, SIDE};
     use crate::global::state::STATE;
 
     #[put("/remote_peer/{ip}")]
@@ -36,6 +36,9 @@ pub mod remote_peer {
         let mut state = STATE.lock().unwrap();
         let remote = state.find_remote_by_ip(&ip.as_str());
         state.set_remote_peer(remote);
+        unsafe {
+            SIDE = ControlSide::RIGHT;
+        }
         HttpResponse::Ok().json(())
     }
 
