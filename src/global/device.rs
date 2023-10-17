@@ -21,7 +21,8 @@ pub struct DeviceInfo {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct RemoteDevice {
     pub hostname: String,
-    pub ip: String
+    pub ip: String,
+    pub screen_size: [i32; 2]
 }
 
 impl RemoteDevice {

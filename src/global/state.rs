@@ -1,7 +1,12 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, ffi::c_int};
 
 use super::device::{DeviceInfo, RemoteDevice};
 use lazy_static::lazy_static;
+
+#[link(name = "libcapture")]
+extern "C" {
+    fn get_screen_size(size: *const c_int);
+}
 
 lazy_static! {
    pub static ref STATE: Mutex<State> = Mutex::new(State::new());
@@ -11,6 +16,7 @@ pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
     pub remote_peer: Option<RemoteDevice>,
+    pub screen_size: [i32; 2]
 }
 
 impl State {
@@ -19,10 +25,15 @@ impl State {
     // }
 
     fn new() -> State {
+        let mut screen_size = [0, 0];
+        unsafe {
+            get_screen_size(screen_size.as_mut_ptr());
+        }
         State {
             remotes: Mutex::new(Vec::new()),
             cur_device: DeviceInfo::new(),
             remote_peer: None,
+            screen_size
         }
     }
 
