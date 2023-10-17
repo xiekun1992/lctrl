@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, ffi::c_int};
+use std::{ffi::c_int, sync::Mutex};
 
 use super::device::{DeviceInfo, RemoteDevice};
 use lazy_static::lazy_static;
@@ -9,14 +9,14 @@ extern "C" {
 }
 
 lazy_static! {
-   pub static ref STATE: Mutex<State> = Mutex::new(State::new());
+    pub static ref STATE: Mutex<State> = Mutex::new(State::new());
 }
 
 pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
     pub remote_peer: Option<RemoteDevice>,
-    pub screen_size: [i32; 2]
+    pub screen_size: [i32; 2],
 }
 
 impl State {
@@ -33,7 +33,7 @@ impl State {
             remotes: Mutex::new(Vec::new()),
             cur_device: DeviceInfo::new(),
             remote_peer: None,
-            screen_size
+            screen_size,
         }
     }
 

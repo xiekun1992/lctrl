@@ -1,10 +1,6 @@
 pub mod udp_server;
 
-use crate::global::state::State;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{sync::Arc, thread};
 use udp_server::UDPServer;
 
 pub fn init() {

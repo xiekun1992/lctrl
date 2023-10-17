@@ -1,5 +1,5 @@
 pub mod device {
-    use actix_web::{get, web, HttpResponse, Responder};
+    use actix_web::{get, HttpResponse, Responder};
 
     use crate::global::state::STATE;
 
@@ -14,7 +14,7 @@ pub mod device {
 }
 
 pub mod remotes {
-    use actix_web::{delete, get, put, web, HttpResponse, Responder};
+    use actix_web::{get, HttpResponse, Responder};
 
     use crate::global::state::STATE;
 

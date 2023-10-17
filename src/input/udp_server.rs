@@ -1,11 +1,5 @@
-use std::sync::Arc;
-use std::time::Duration;
-use std::{net::UdpSocket, thread};
+use std::net::UdpSocket;
 use std::{slice, str};
-
-use crate::global::device::{DeviceInfo, RemoteDevice};
-use crate::global::state::{State, STATE};
-use chrono::prelude::*;
 
 pub struct UDPServer {
     socket: UdpSocket,
@@ -25,19 +19,8 @@ impl UDPServer {
         let mut buf = [0; 512];
         loop {
             let (recv_size, rinfo) = self.socket.recv_from(&mut buf).unwrap();
-            let bytes = unsafe {
-                slice::from_raw_parts(buf.as_ptr(), recv_size)
-            };
-            // let remote = DeviceInfo::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
-
-            // let state = STATE.lock().unwrap();
-            // let dev = &state.cur_device;
-            // if dev
-            //     .ifs
-            //     .iter()
-            //     .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
+            let bytes = unsafe { slice::from_raw_parts(buf.as_ptr(), recv_size) };
             {
-                // println!("{} - {:?}", Local::now(), bytes);
                 cb(bytes);
             }
         }
