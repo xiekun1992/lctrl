@@ -1,33 +1,36 @@
-
-use std::net::Ipv4Addr;
-use gethostname::gethostname;
-use serde::{Serialize, Deserialize};
 use default_net;
+use gethostname::gethostname;
+use serde::{Deserialize, Serialize};
+use std::net::Ipv4Addr;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Interface {
     pub addr: Ipv4Addr,
     pub netmask: Ipv4Addr,
     pub mac_addr: String,
-    pub broadcast_addr: Ipv4Addr
+    pub broadcast_addr: Ipv4Addr,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeviceInfo {
     pub hostname: String,
-    pub ifs: Vec<Interface>
+    pub ifs: Vec<Interface>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct RemoteDevice {
     pub hostname: String,
     pub ip: String,
-    pub screen_size: [i32; 2]
+    pub screen_size: [i32; 2],
 }
 
 impl RemoteDevice {
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
+    }
+    pub fn from_json(json_str: String) -> RemoteDevice {
+        let remote: RemoteDevice = serde_json::from_str(&json_str).unwrap();
+        remote
     }
 }
 
@@ -45,27 +48,21 @@ impl DeviceInfo {
             }
 
             if avail {
-                ifs.push(Interface{
+                ifs.push(Interface {
                     addr: interface.ipv4[0].addr,
                     netmask: interface.ipv4[0].netmask,
                     mac_addr: interface.mac_addr.unwrap().to_string(),
-                    broadcast_addr: calc_broadcast_addr(interface.ipv4[0].addr, interface.ipv4[0].netmask)
+                    broadcast_addr: calc_broadcast_addr(
+                        interface.ipv4[0].addr,
+                        interface.ipv4[0].netmask,
+                    ),
                 });
             }
         }
         DeviceInfo {
             hostname: String::from(gethostname().to_str().unwrap()),
-            ifs
+            ifs,
         }
-    }
-    
-    pub fn from_json(json_str: String) -> RemoteDevice {
-        let remote: RemoteDevice = serde_json::from_str(&json_str).unwrap();
-        remote
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self).unwrap()
     }
 }
 
@@ -82,14 +79,14 @@ fn calc_broadcast_addr(addr: Ipv4Addr, netmask: Ipv4Addr) -> Ipv4Addr {
 #[test]
 fn calc_broadcast_addr_test() {
     let b = calc_broadcast_addr(
-        Ipv4Addr::new(192, 168, 1, 1), 
-        Ipv4Addr::new(255, 255, 255, 0)
+        Ipv4Addr::new(192, 168, 1, 1),
+        Ipv4Addr::new(255, 255, 255, 0),
     );
     assert_eq!(b, Ipv4Addr::new(192, 168, 1, 255));
 
     let b1 = calc_broadcast_addr(
-        Ipv4Addr::new(200, 222, 5, 100), 
-        Ipv4Addr::new(255, 128, 0, 0)
+        Ipv4Addr::new(200, 222, 5, 100),
+        Ipv4Addr::new(255, 128, 0, 0),
     );
     assert_eq!(b1, Ipv4Addr::new(200, 255, 255, 255));
 }

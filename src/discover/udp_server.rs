@@ -2,7 +2,7 @@ use std::str;
 use std::time::Duration;
 use std::{net::UdpSocket, thread};
 
-use crate::global::device::{DeviceInfo, RemoteDevice};
+use crate::global::device::RemoteDevice;
 use crate::global::state::STATE;
 
 pub struct UDPServer {
@@ -19,11 +19,10 @@ impl UDPServer {
         UDPServer { socket, ip, port }
     }
     pub fn recv(&self) {
-        // let dev = DeviceInfo::new();
         let mut buf = [0; 64 * 1024];
         loop {
             let (data, rinfo) = self.socket.recv_from(&mut buf).unwrap();
-            let remote = DeviceInfo::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
+            let remote = RemoteDevice::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
 
             let state = STATE.lock().unwrap();
             let dev = &state.cur_device;
@@ -32,13 +31,11 @@ impl UDPServer {
                 .iter()
                 .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
             {
-                // println!("{} - {:?}", Local::now(), remote);
                 state.add_remote(remote);
             }
         }
     }
     pub fn send(&self) {
-        // let dev = DeviceInfo::new();
         let mut remote_infos = Vec::new();
         {
             let state = STATE.lock().unwrap();
@@ -59,7 +56,6 @@ impl UDPServer {
                 self.socket
                     .send_to(remote.as_bytes(), addr)
                     .expect("send failed");
-                // println!("send to {:?}", interface.broadcast_addr);
             }
             thread::sleep(Duration::from_secs(1));
         }
