@@ -1,9 +1,9 @@
-use actix_web::{HttpServer, App};
+use actix_web::{App, HttpServer};
 
-mod web_api;
-mod global;
 mod discover;
+mod global;
 mod input;
+mod web_api;
 
 #[actix_web::main]
 async fn web_main() -> std::io::Result<()> {

@@ -31,8 +31,9 @@ extern "C" {
 }
 use chrono::Local;
 use lazy_static::lazy_static;
+use serde::Deserialize;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 pub enum ControlSide {
     NONE,
     LEFT,
