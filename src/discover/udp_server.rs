@@ -7,7 +7,7 @@ use crate::global::state::STATE;
 
 pub struct UDPServer {
     socket: UdpSocket,
-    ip: String,
+    _ip: String,
     port: u16,
 }
 
@@ -16,7 +16,11 @@ impl UDPServer {
         let socket = UdpSocket::bind(format!("{ip}:{port}")).unwrap();
         // socket.set_nonblocking(true).unwrap();
         socket.set_broadcast(true).unwrap();
-        UDPServer { socket, ip, port }
+        UDPServer {
+            socket,
+            _ip: ip,
+            port,
+        }
     }
     pub fn recv(&self) {
         let mut buf = [0; 64 * 1024];
