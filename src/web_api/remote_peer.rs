@@ -28,6 +28,9 @@ pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
 pub async fn delete() -> impl Responder {
     let mut state = STATE.lock().unwrap();
     state.set_remote_peer(None);
+    unsafe {
+        SIDE = ControlSide::NONE;
+    }
     HttpResponse::Ok().json(())
 }
 
