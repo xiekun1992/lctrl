@@ -29,7 +29,6 @@ extern "C" {
     fn keyup(scancode: c_int) -> c_int;
     // fn scancode_to_keycode(scancode: c_int) -> c_int;
 }
-use chrono::Local;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
@@ -72,7 +71,7 @@ fn cb(bytes: &[u8]) {
             bytes.as_ptr() as *const i32,
             bytes.len() * mem::size_of::<u8>(),
         );
-        println!("{} - {:?}", Local::now(), bytes);
+        // println!("{} - {:?}", Local::now(), bytes);
         match bytes[0] {
             0 => {
                 // MouseWheel
@@ -161,10 +160,10 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                 }
                 let x = POS_IN_REMOTE_SCREEN[0]; //(POS_IN_REMOTE_SCREEN[0] as f32 / SCREEN_SIZE[0] as f32 * 1366.0) as i32;
                 let y = POS_IN_REMOTE_SCREEN[1]; //POS_IN_REMOTE_SCREEN[1] as f32 / SCREEN_SIZE[1] as f32 * 768.0) as i32;
-                println!(
-                    "BLOCK={}, POS_IN_REMOTE_SCREEN={}, SCREEN_SIZE={}, x={}, y={}",
-                    BLOCK, POS_IN_REMOTE_SCREEN[1], REMOTE_SCREEN_SIZE[1], x, y
-                );
+                                                 // println!(
+                                                 //     "BLOCK={}, POS_IN_REMOTE_SCREEN={}, SCREEN_SIZE={}, x={}, y={}",
+                                                 //     BLOCK, POS_IN_REMOTE_SCREEN[1], REMOTE_SCREEN_SIZE[1], x, y
+                                                 // );
                 let bytes_to_send = [1, x, y];
                 send_to_remote(bytes_to_send.as_slice());
             } else if ev[0] != 1 {
