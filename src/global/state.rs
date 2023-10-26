@@ -20,10 +20,6 @@ pub struct State {
 }
 
 impl State {
-    // pub fn get_instance() -> State {
-    //     STATE.lock().unwrap().try_into()
-    // }
-
     fn new() -> State {
         let mut screen_size = [0, 0];
         unsafe {
@@ -50,6 +46,11 @@ impl State {
         if !remotes.contains(&remote) {
             remotes.push(remote);
         }
+    }
+
+    pub fn del_remote(&self, ip: String) {
+        let mut remotes = self.remotes.lock().unwrap();
+        remotes.retain(|item| item.ip != ip);
     }
 
     pub fn find_remote_by_ip(&self, ip: &str) -> Option<RemoteDevice> {

@@ -20,6 +20,8 @@ pub async fn web_main() -> std::io::Result<()> {
             .service(file::post)
             .service(device::get)
             .service(remotes::get)
+            .service(remotes::post)
+            .service(remotes::delete)
             .service(remote_peer::get)
             .service(remote_peer::put)
             .service(remote_peer::delete)
