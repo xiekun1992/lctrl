@@ -57,9 +57,12 @@ impl UDPServer {
         }
         loop {
             for (remote, addr) in &remote_infos {
-                self.socket
-                    .send_to(remote.as_bytes(), addr)
-                    .expect("send failed");
+                match self.socket.send_to(remote.as_bytes(), addr) {
+                    Err(e) => {
+                        println!("discover packet send failed: {}", e);
+                    }
+                    _ => {}
+                }
             }
             thread::sleep(Duration::from_secs(1));
         }
