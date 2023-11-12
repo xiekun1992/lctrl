@@ -1,5 +1,6 @@
 mod device;
 mod file;
+mod frontend;
 mod remote_peer;
 mod remotes;
 mod ws;
@@ -9,6 +10,7 @@ use actix_cors::Cors;
 use actix_files::Files;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartFormConfig};
 use actix_web::{http, middleware, App, HttpServer};
+use actix_web::{web, HttpResponse};
 
 #[actix_web::main]
 pub async fn web_main() -> std::io::Result<()> {
@@ -39,18 +41,23 @@ pub async fn web_main() -> std::io::Result<()> {
             .app_data(TempFileConfig::default().directory("./tmp"))
             // .service(Files::new("/static", "./static/build/static"))
             // .service(Files::new("/static", "./static").show_files_listing())
-            .service(ws::index)
-            .service(file::post)
-            .service(device::get)
-            .service(remotes::get)
-            .service(remotes::post)
-            .service(remotes::delete)
-            .service(remote_peer::get)
-            .service(remote_peer::put)
-            .service(remote_peer::delete)
-            .service(Files::new("/", "./static/build/"))
+            .service(
+                web::scope("/api")
+                    .service(ws::index)
+                    .service(file::post)
+                    .service(device::get)
+                    .service(remotes::get)
+                    .service(remotes::post)
+                    .service(remotes::delete)
+                    .service(remote_peer::get)
+                    .service(remote_peer::put)
+                    .service(remote_peer::delete),
+            )
+            // .service(frontend::get)
+            .service(frontend::get_resource)
+        // .default_service(|| HttpResponse::Ok().status(404).body("Not Found"))
     })
-    .bind(("0.0.0.0", 8000))?
+    .bind(("0.0.0.0", 18000))?
     .run()
     .await
 }
