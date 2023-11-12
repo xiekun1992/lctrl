@@ -40,7 +40,7 @@ pub enum ControlSide {
 }
 
 lazy_static! {
-    static ref SERVER: UDPServer = UDPServer::new(String::from("0.0.0.0"), 1233);
+    static ref SERVER: UDPServer = UDPServer::new(String::from("0.0.0.0"), 11233);
 }
 pub static mut REMOTE_SCREEN_SIZE: [i32; 2] = [0, 0];
 pub static mut SELF_SCREEN_SIZE: [i32; 2] = [0, 0];
@@ -56,7 +56,7 @@ fn send_to_remote(ev: &[i32]) {
         {
             match &STATE.lock().unwrap().remote_peer {
                 Some(peer) => {
-                    let addr = format!("{}:1233", peer.ip);
+                    let addr = format!("{}:11233", peer.ip);
                     SERVER.send(&bytes, &addr);
                 }
                 None => {}

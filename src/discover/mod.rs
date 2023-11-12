@@ -4,7 +4,7 @@ use std::{sync::Arc, thread};
 use udp_server::UDPServer;
 
 pub fn init() {
-    let udp_discover = UDPServer::new("0.0.0.0".to_string(), 1232);
+    let udp_discover = UDPServer::new("0.0.0.0".to_string(), 11232);
     let server = Arc::new(udp_discover);
 
     let recv_server = Arc::clone(&server);
