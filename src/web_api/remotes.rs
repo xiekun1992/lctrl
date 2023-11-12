@@ -1,6 +1,6 @@
 use actix_web::{
     delete, get, post,
-    web::{self, Json, Query},
+    web::{Json, Query},
     HttpResponse, Responder,
 };
 use serde::Deserialize;

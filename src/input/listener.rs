@@ -30,9 +30,9 @@ extern "C" {
     // fn scancode_to_keycode(scancode: c_int) -> c_int;
 }
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 pub enum ControlSide {
     NONE,
     LEFT,

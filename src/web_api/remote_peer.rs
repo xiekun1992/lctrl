@@ -1,7 +1,8 @@
+use crate::global::device::RemoteDevice;
 use crate::global::state::STATE;
 use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
 use actix_web::{delete, get, put, web, HttpResponse, Responder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct RemoteSetting {
@@ -34,10 +35,21 @@ pub async fn delete() -> impl Responder {
     HttpResponse::Ok().json(())
 }
 
+#[derive(Deserialize, Serialize)]
+struct RemotePeer {
+    remote: RemoteDevice,
+    side: ControlSide,
+}
+
 #[get("/remote_peer")]
 pub async fn get() -> impl Responder {
-    match STATE.lock().unwrap().remote_peer.as_ref() {
-        Some(p) => HttpResponse::Ok().json(p),
-        None => HttpResponse::Ok().json(()),
+    unsafe {
+        match STATE.lock().unwrap().remote_peer.as_ref() {
+            Some(p) => HttpResponse::Ok().json(RemotePeer {
+                remote: p.clone(),
+                side: SIDE.clone(),
+            }),
+            None => HttpResponse::Ok().json(()),
+        }
     }
 }
