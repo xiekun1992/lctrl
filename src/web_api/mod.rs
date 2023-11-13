@@ -3,7 +3,6 @@ mod file;
 mod frontend;
 mod remote_peer;
 mod remotes;
-mod ws;
 use std::{fs, vec};
 
 use actix_cors::Cors;
@@ -43,7 +42,6 @@ pub async fn web_main() -> std::io::Result<()> {
             // .service(Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api")
-                    .service(ws::index)
                     .service(file::post)
                     .service(device::get)
                     .service(remotes::get)
