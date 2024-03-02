@@ -1,6 +1,11 @@
 use std::{ffi::c_int, sync::Mutex};
 
-use super::device::{DeviceInfo, RemoteDevice};
+use crate::input::listener::{ControlSide, SIDE};
+
+use super::{
+    db::DB_CONN,
+    device::{DeviceInfo, RemoteDevice},
+};
 use lazy_static::lazy_static;
 
 #[link(name = "libcapture")]
@@ -15,7 +20,6 @@ lazy_static! {
 pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
-    pub remote_peer: Option<RemoteDevice>,
     pub screen_size: [i32; 2],
 }
 
@@ -28,13 +32,26 @@ impl State {
         State {
             remotes: Mutex::new(Vec::new()),
             cur_device: DeviceInfo::new(),
-            remote_peer: None,
             screen_size,
         }
     }
 
-    pub fn set_remote_peer(&mut self, peer: Option<RemoteDevice>) {
-        self.remote_peer = peer;
+    pub fn get_remote_peer(&self) -> Option<RemoteDevice> {
+        let db = DB_CONN.lock().unwrap();
+        db.get_remote_peer()
+    }
+
+    pub fn set_remote_peer(&self, peer: Option<RemoteDevice>, side: &ControlSide) {
+        match peer {
+            Some(ref r) => {
+                let db = DB_CONN.lock().unwrap();
+                db.set_remote_peer(r, side);
+            }
+            None => {
+                let db = DB_CONN.lock().unwrap();
+                db.delete_remote_peer();
+            }
+        }
     }
 
     pub fn get_remote(&self) -> Vec<RemoteDevice> {

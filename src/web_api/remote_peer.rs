@@ -12,14 +12,14 @@ pub struct RemoteSetting {
 
 #[put("/remote_peer")]
 pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
-    let mut state = STATE.lock().unwrap();
+    let state = STATE.lock().unwrap();
     let remote = state.find_remote_by_ip(&setting.ip.as_str());
     if let Some(rdev) = remote.clone() {
         unsafe {
             REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
             SELF_SCREEN_SIZE = state.screen_size.clone();
             SIDE = setting.side;
-            state.set_remote_peer(remote);
+            state.set_remote_peer(remote, &SIDE);
         }
     }
     HttpResponse::Ok().json(())
@@ -27,10 +27,10 @@ pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
 
 #[delete("/remote_peer")]
 pub async fn delete() -> impl Responder {
-    let mut state = STATE.lock().unwrap();
-    state.set_remote_peer(None);
+    let state = STATE.lock().unwrap();
     unsafe {
         SIDE = ControlSide::NONE;
+        state.set_remote_peer(None, &SIDE);
     }
     HttpResponse::Ok().json(())
 }
@@ -44,7 +44,7 @@ struct RemotePeer {
 #[get("/remote_peer")]
 pub async fn get() -> impl Responder {
     unsafe {
-        match STATE.lock().unwrap().remote_peer.as_ref() {
+        match STATE.lock().unwrap().get_remote_peer() {
             Some(p) => HttpResponse::Ok().json(RemotePeer {
                 remote: p.clone(),
                 side: SIDE.clone(),
