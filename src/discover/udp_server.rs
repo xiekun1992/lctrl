@@ -49,6 +49,7 @@ impl UDPServer {
                 let remote = RemoteDevice {
                     hostname: dev.hostname.clone(),
                     ip: interface.addr.to_string(),
+                    mac_addr: interface.mac_addr.clone(),
                     screen_size: state.screen_size.clone(),
                 }
                 .to_json();

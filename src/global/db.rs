@@ -24,6 +24,7 @@ impl DB {
                 id integer primary key,
                 hostname varchar(255),
                 ip varchar(255),
+                mac_addr varchar(255),
                 screen_size_x integer,
                 screen_size_y integer,
                 side integer
@@ -42,16 +43,15 @@ impl DB {
         };
         self.conn
             .execute(
-                "insert into remote_peer(hostname, ip, screen_size_x, screen_size_y, side) values (?1, ?2, ?3, ?4, ?5)",
-                (&remote_peer.hostname, &remote_peer.ip, &remote_peer.screen_size[0], &remote_peer.screen_size[1], &remote_peer_side),
+                "insert into remote_peer(hostname, ip, screen_size_x, screen_size_y, mac_addr, side) values (?1, ?2, ?3, ?4, ?5, ?6)",
+                (&remote_peer.hostname, &remote_peer.ip, &remote_peer.screen_size[0], &remote_peer.screen_size[1], &remote_peer.mac_addr, &remote_peer_side),
             )
             .unwrap();
     }
     pub fn get_remote_peer(&self) -> Option<RemoteDevice> {
-        match self
-            .conn
-            .prepare("select hostname, ip, screen_size_x, screen_size_y, side from remote_peer")
-        {
+        match self.conn.prepare(
+            "select hostname, ip, screen_size_x, screen_size_y, side, mac_addr from remote_peer",
+        ) {
             Ok(mut stmt) => {
                 let mut iter = stmt
                     .query_map([], |row| {
@@ -59,6 +59,7 @@ impl DB {
                         let remote_peer = RemoteDevice {
                             hostname: row.get(0).unwrap(),
                             ip: row.get(1).unwrap(),
+                            mac_addr: row.get(5).unwrap(),
                             screen_size: [row.get(2).unwrap(), row.get(3).unwrap()],
                         };
                         unsafe {

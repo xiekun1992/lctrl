@@ -1,6 +1,7 @@
 mod device;
 mod file;
 mod frontend;
+mod launch;
 mod remote_peer;
 mod remotes;
 use std::{fs, vec};

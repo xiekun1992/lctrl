@@ -21,6 +21,7 @@ pub struct DeviceInfo {
 pub struct RemoteDevice {
     pub hostname: String,
     pub ip: String,
+    pub mac_addr: String,
     pub screen_size: [i32; 2],
 }
 
@@ -29,6 +30,7 @@ impl RemoteDevice {
         serde_json::to_string(&self).unwrap()
     }
     pub fn from_json(json_str: String) -> RemoteDevice {
+        println!("remote device from json {}", json_str);
         let remote: RemoteDevice = serde_json::from_str(&json_str).unwrap();
         remote
     }
