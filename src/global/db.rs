@@ -2,10 +2,7 @@ use std::sync::Mutex;
 
 use rusqlite::Connection;
 
-use crate::{
-    global::device::RemoteDevice,
-    input::listener::{ControlSide, SIDE},
-};
+use crate::{global::device::RemoteDevice, input::listener::ControlSide};
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -34,6 +31,7 @@ impl DB {
         .unwrap();
         DB { conn }
     }
+
     pub fn set_remote_peer(&self, remote_peer: &RemoteDevice, side: &ControlSide) {
         self.delete_remote_peer();
         let remote_peer_side = match side {
@@ -48,7 +46,8 @@ impl DB {
             )
             .unwrap();
     }
-    pub fn get_remote_peer(&self) -> Option<RemoteDevice> {
+
+    pub fn get_remote_peer(&self) -> (Option<RemoteDevice>, ControlSide) {
         match self.conn.prepare(
             "select hostname, ip, screen_size_x, screen_size_y, side, mac_addr from remote_peer",
         ) {
@@ -62,35 +61,35 @@ impl DB {
                             mac_addr: row.get(5).unwrap(),
                             screen_size: [row.get(2).unwrap(), row.get(3).unwrap()],
                         };
-                        unsafe {
-                            match row.get(4).unwrap() {
-                                0 => SIDE = ControlSide::NONE,
-                                1 => SIDE = ControlSide::LEFT,
-                                2 => SIDE = ControlSide::RIGHT,
-                                _ => {}
-                            }
+                        let mut side = ControlSide::NONE;
+                        match row.get(4).unwrap() {
+                            0 => side = ControlSide::NONE,
+                            1 => side = ControlSide::LEFT,
+                            2 => side = ControlSide::RIGHT,
+                            _ => {}
                         }
 
-                        Ok(remote_peer)
+                        Ok((remote_peer, side))
                     })
                     .unwrap();
                 match iter.next() {
                     Some(res) => match res {
-                        Ok(r) => Some(r),
+                        Ok((r, s)) => (Some(r), s),
                         Err(e) => {
                             println!("statment iter {:?}", e);
-                            None
+                            (None, ControlSide::NONE)
                         }
                     },
-                    _ => None,
+                    _ => (None, ControlSide::NONE),
                 }
             }
             Err(e) => {
                 println!("select {:?}", e);
-                None
+                (None, ControlSide::NONE)
             }
         }
     }
+
     pub fn delete_remote_peer(&self) {
         self.conn.execute("delete from remote_peer", ()).unwrap();
     }

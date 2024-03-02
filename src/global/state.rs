@@ -1,6 +1,6 @@
 use std::{ffi::c_int, sync::Mutex};
 
-use crate::input::listener::{ControlSide, SIDE};
+use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
 
 use super::{
     db::DB_CONN,
@@ -38,7 +38,16 @@ impl State {
 
     pub fn get_remote_peer(&self) -> Option<RemoteDevice> {
         let db = DB_CONN.lock().unwrap();
-        db.get_remote_peer()
+        let (remote_peer, side) = db.get_remote_peer();
+        let rdev = remote_peer.clone().unwrap();
+        if self.find_remote_by_ip(&rdev.ip).is_some() {
+            unsafe {
+                REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
+                SELF_SCREEN_SIZE = self.screen_size.clone();
+                SIDE = side;
+            }
+        }
+        remote_peer
     }
 
     pub fn set_remote_peer(&self, peer: Option<RemoteDevice>, side: &ControlSide) {
