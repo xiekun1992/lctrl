@@ -28,8 +28,9 @@ impl UDPServer {
             let (data, rinfo) = self.socket.recv_from(&mut buf).unwrap();
             let remote = RemoteDevice::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
 
-            let state = STATE.lock().unwrap();
+            let mut state = STATE.lock().unwrap();
             let dev = &state.cur_device;
+            // println!("{:?}, {:?}", dev, remote);
             if dev
                 .ifs
                 .iter()

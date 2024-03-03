@@ -12,7 +12,7 @@ pub struct RemoteSetting {
 
 #[put("/remote_peer")]
 pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
-    let state = STATE.lock().unwrap();
+    let mut state = STATE.lock().unwrap();
     let remote = state.find_remote_by_ip(&setting.ip.as_str());
     if let Some(rdev) = remote.clone() {
         unsafe {
@@ -27,7 +27,7 @@ pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
 
 #[delete("/remote_peer")]
 pub async fn delete() -> impl Responder {
-    let state = STATE.lock().unwrap();
+    let mut state = STATE.lock().unwrap();
     unsafe {
         SIDE = ControlSide::NONE;
         state.set_remote_peer(None, &SIDE);

@@ -20,7 +20,9 @@ lazy_static! {
 pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
+    pub remote_peer: Option<RemoteDevice>,
     pub screen_size: [i32; 2],
+    pub side: ControlSide,
 }
 
 impl State {
@@ -33,25 +35,32 @@ impl State {
             remotes: Mutex::new(Vec::new()),
             cur_device: DeviceInfo::new(),
             screen_size,
+            remote_peer: None,
+            side: ControlSide::NONE,
         }
     }
 
-    pub fn get_remote_peer(&self) -> Option<RemoteDevice> {
+    pub fn get_remote_peer(&mut self) -> Option<RemoteDevice> {
         let db = DB_CONN.lock().unwrap();
         let (remote_peer, side) = db.get_remote_peer();
-        let rdev = remote_peer.clone().unwrap();
-        if self.find_remote_by_ip(&rdev.ip).is_some() {
-            unsafe {
-                REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
-                SELF_SCREEN_SIZE = self.screen_size.clone();
-                SIDE = side;
+        match remote_peer.clone() {
+            Some(rdev) => {
+                if self.find_remote_by_ip(&rdev.ip).is_some() {
+                    unsafe {
+                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
+                        SELF_SCREEN_SIZE = self.screen_size.clone();
+                        SIDE = side;
+                    }
+                }
             }
+            None => {}
         }
-        remote_peer
+        self.remote_peer = remote_peer;
+        self.remote_peer.clone()
     }
 
-    pub fn set_remote_peer(&self, peer: Option<RemoteDevice>, side: &ControlSide) {
-        match peer {
+    pub fn set_remote_peer(&mut self, peer: Option<RemoteDevice>, side: &ControlSide) {
+        match peer.clone() {
             Some(ref r) => {
                 let db = DB_CONN.lock().unwrap();
                 db.set_remote_peer(r, side);
@@ -61,17 +70,22 @@ impl State {
                 db.delete_remote_peer();
             }
         }
+        self.remote_peer = peer;
     }
 
     pub fn get_remote(&self) -> Vec<RemoteDevice> {
         self.remotes.lock().unwrap().clone()
     }
 
-    pub fn add_remote(&self, remote: RemoteDevice) {
-        let mut remotes = self.remotes.lock().unwrap();
-        if !remotes.contains(&remote) {
-            remotes.push(remote);
+    pub fn add_remote(&mut self, remote: RemoteDevice) {
+        {
+            let mut remotes = self.remotes.lock().unwrap();
+            if !remotes.contains(&remote) {
+                remotes.push(remote);
+                // println!("{:?}, {:?}", remotes, self.remote_peer);
+            }
         }
+        self.get_remote_peer();
     }
 
     pub fn del_remote(&self, ip: String) {

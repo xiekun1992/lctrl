@@ -54,7 +54,7 @@ impl DB {
             Ok(mut stmt) => {
                 let mut iter = stmt
                     .query_map([], |row| {
-                        println!("{:?}", row);
+                        // println!("{:?}", row);
                         let remote_peer = RemoteDevice {
                             hostname: row.get(0).unwrap(),
                             ip: row.get(1).unwrap(),
