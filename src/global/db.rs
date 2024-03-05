@@ -3,11 +3,6 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 
 use crate::{global::device::RemoteDevice, input::listener::ControlSide};
-use lazy_static::lazy_static;
-
-lazy_static! {
-    pub static ref DB_CONN: Mutex<DB> = Mutex::new(DB::new());
-}
 
 pub struct DB {
     conn: Connection,

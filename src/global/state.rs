@@ -3,7 +3,7 @@ use std::{ffi::c_int, sync::Mutex};
 use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
 
 use super::{
-    db::DB_CONN,
+    db::DB,
     device::{DeviceInfo, RemoteDevice},
 };
 use lazy_static::lazy_static;
@@ -23,6 +23,7 @@ pub struct State {
     pub remote_peer: Option<RemoteDevice>,
     pub screen_size: [i32; 2],
     pub side: ControlSide,
+    pub db: DB,
 }
 
 impl State {
@@ -31,43 +32,29 @@ impl State {
         unsafe {
             get_screen_size(screen_size.as_mut_ptr());
         }
+        let db = DB::new();
+        let (remote_peer, side) = db.get_remote_peer();
         State {
             remotes: Mutex::new(Vec::new()),
             cur_device: DeviceInfo::new(),
             screen_size,
-            remote_peer: None,
-            side: ControlSide::NONE,
+            remote_peer,
+            side,
+            db,
         }
     }
 
     pub fn get_remote_peer(&mut self) -> Option<RemoteDevice> {
-        let db = DB_CONN.lock().unwrap();
-        let (remote_peer, side) = db.get_remote_peer();
-        match remote_peer.clone() {
-            Some(rdev) => {
-                if self.find_remote_by_ip(&rdev.ip).is_some() {
-                    unsafe {
-                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
-                        SELF_SCREEN_SIZE = self.screen_size.clone();
-                        SIDE = side;
-                    }
-                }
-            }
-            None => {}
-        }
-        self.remote_peer = remote_peer;
         self.remote_peer.clone()
     }
 
     pub fn set_remote_peer(&mut self, peer: Option<RemoteDevice>, side: &ControlSide) {
         match peer.clone() {
             Some(ref r) => {
-                let db = DB_CONN.lock().unwrap();
-                db.set_remote_peer(r, side);
+                self.db.set_remote_peer(r, side);
             }
             None => {
-                let db = DB_CONN.lock().unwrap();
-                db.delete_remote_peer();
+                self.db.delete_remote_peer();
             }
         }
         self.remote_peer = peer;
@@ -81,11 +68,22 @@ impl State {
         {
             let mut remotes = self.remotes.lock().unwrap();
             if !remotes.contains(&remote) {
-                remotes.push(remote);
+                remotes.push(remote.clone());
                 // println!("{:?}, {:?}", remotes, self.remote_peer);
             }
         }
-        self.get_remote_peer();
+        match self.remote_peer.clone() {
+            Some(rdev) => {
+                if self.find_remote_by_ip(&rdev.ip).is_some() {
+                    unsafe {
+                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
+                        SELF_SCREEN_SIZE = self.screen_size.clone();
+                        SIDE = self.side.clone();
+                    }
+                }
+            }
+            None => {}
+        }
     }
 
     pub fn del_remote(&self, ip: String) {
