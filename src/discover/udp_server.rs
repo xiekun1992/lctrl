@@ -52,6 +52,7 @@ impl UDPServer {
                     ip: interface.addr.to_string(),
                     mac_addr: interface.mac_addr.clone(),
                     screen_size: state.screen_size.clone(),
+                    alive_timestamp: 0,
                 }
                 .to_json();
                 remote_infos.push((remote, addr));

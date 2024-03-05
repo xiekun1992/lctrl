@@ -1,4 +1,9 @@
-use std::{ffi::c_int, sync::Mutex};
+use std::{
+    borrow::BorrowMut,
+    ffi::c_int,
+    sync::Mutex,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
 
@@ -64,13 +69,24 @@ impl State {
         self.remotes.lock().unwrap().clone()
     }
 
-    pub fn add_remote(&mut self, remote: RemoteDevice) {
+    pub fn add_remote(&mut self, mut remote: RemoteDevice) {
         {
             let mut remotes = self.remotes.lock().unwrap();
-            if !remotes.contains(&remote) {
+            let timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                Ok(duration) => duration.as_secs(),
+                Err(_) => {
+                    println!("SystemTime before UNIX EPOCH!");
+                    0
+                }
+            };
+            let found = remotes.iter_mut().find(|item| item.ip.eq(&remote.ip));
+            if found.is_none() {
+                remote.alive_timestamp = timestamp;
                 remotes.push(remote.clone());
-                // println!("{:?}, {:?}", remotes, self.remote_peer);
+            } else {
+                found.unwrap().alive_timestamp = timestamp;
             }
+            // println!("{:?}, {:?}", remotes, self.remote_peer);
         }
         match self.remote_peer.clone() {
             Some(rdev) => {
@@ -100,4 +116,15 @@ impl State {
         }
         None
     }
+}
+
+#[test]
+fn test_time() {
+    // 获取 UNIX 时间戳
+    let timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(duration) => duration.as_secs(),
+        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    };
+
+    println!("Current timestamp: {}", timestamp);
 }

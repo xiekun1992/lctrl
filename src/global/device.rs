@@ -23,6 +23,7 @@ pub struct RemoteDevice {
     pub ip: String,
     pub mac_addr: String,
     pub screen_size: [i32; 2],
+    pub alive_timestamp: u64,
 }
 
 impl RemoteDevice {

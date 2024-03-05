@@ -55,6 +55,7 @@ impl DB {
                             ip: row.get(1).unwrap(),
                             mac_addr: row.get(5).unwrap(),
                             screen_size: [row.get(2).unwrap(), row.get(3).unwrap()],
+                            alive_timestamp: 0,
                         };
                         let mut side = ControlSide::NONE;
                         match row.get(4).unwrap() {
