@@ -52,7 +52,7 @@ fn send_to_remote(ev: &[i32]) {
     unsafe {
         let bytes =
             slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>());
-        println!("{:?}", bytes);
+        // println!("{:?}", bytes);
         {
             match &STATE.lock().unwrap().get_remote_peer() {
                 Some(peer) => {
