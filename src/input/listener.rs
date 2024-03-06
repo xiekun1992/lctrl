@@ -47,6 +47,7 @@ pub static mut SELF_SCREEN_SIZE: [i32; 2] = [0, 0];
 pub static mut SIDE: ControlSide = ControlSide::NONE;
 static mut POS_IN_REMOTE_SCREEN: [i32; 2] = [0, 0];
 static mut BLOCK: bool = false;
+static mut MOUSE_BUTTON_HOLD: bool = false;
 
 fn send_to_remote(ev: &[i32]) {
     unsafe {
@@ -122,13 +123,13 @@ extern "C" fn mouse_handler(ev: *const c_long) {
         //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
         //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
         // );
-
+        // 控制状态下转发鼠标动作
         if BLOCK {
             // mousemoverel
             if ev[0] == 6 {
                 POS_IN_REMOTE_SCREEN[0] += ev[1];
                 POS_IN_REMOTE_SCREEN[1] += ev[2];
-
+                // 检测是否移动到屏幕边缘并解除控制
                 match SIDE {
                     ControlSide::LEFT => {
                         if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[0] {
@@ -146,6 +147,7 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                     }
                     _ => {}
                 }
+                // 检测是否超过屏幕上下限
                 if POS_IN_REMOTE_SCREEN[0] < 0 {
                     POS_IN_REMOTE_SCREEN[0] = 0;
                 }
@@ -158,12 +160,10 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                 if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[1] {
                     POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[1];
                 }
-                let x = POS_IN_REMOTE_SCREEN[0]; //(POS_IN_REMOTE_SCREEN[0] as f32 / SCREEN_SIZE[0] as f32 * 1366.0) as i32;
-                let y = POS_IN_REMOTE_SCREEN[1]; //POS_IN_REMOTE_SCREEN[1] as f32 / SCREEN_SIZE[1] as f32 * 768.0) as i32;
-                                                 // println!(
-                                                 //     "BLOCK={}, POS_IN_REMOTE_SCREEN={}, SCREEN_SIZE={}, x={}, y={}",
-                                                 //     BLOCK, POS_IN_REMOTE_SCREEN[1], REMOTE_SCREEN_SIZE[1], x, y
-                                                 // );
+
+                // 鼠标相对移动转换成绝对移动
+                let x = POS_IN_REMOTE_SCREEN[0];
+                let y = POS_IN_REMOTE_SCREEN[1];
                 let bytes_to_send = [1, x, y];
                 send_to_remote(bytes_to_send.as_slice());
             } else if ev[0] != 1 {
@@ -171,24 +171,39 @@ extern "C" fn mouse_handler(ev: *const c_long) {
             }
         }
 
-        if !BLOCK && ev[0] == 1 {
-            // mousemove
-            match SIDE {
-                ControlSide::LEFT => {
-                    if ev[1] <= 0 {
-                        listener_setBlock(1);
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                        POS_IN_REMOTE_SCREEN[1] = ev[2];
-                        BLOCK = true;
+        // 非控制下检测鼠标移动，判断是否进入控制
+        if !BLOCK {
+            match ev[0] {
+                1 => {
+                    // mousemove
+                    if MOUSE_BUTTON_HOLD {
+                        return;
+                    }
+                    match SIDE {
+                        ControlSide::LEFT => {
+                            if ev[1] <= 0 {
+                                listener_setBlock(1);
+                                POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                                POS_IN_REMOTE_SCREEN[1] = ev[2];
+                                BLOCK = true;
+                            }
+                        }
+                        ControlSide::RIGHT => {
+                            if ev[1] >= SELF_SCREEN_SIZE[0] {
+                                listener_setBlock(1);
+                                POS_IN_REMOTE_SCREEN[0] = 0;
+                                POS_IN_REMOTE_SCREEN[1] = ev[2];
+                                BLOCK = true;
+                            }
+                        }
+                        _ => {}
                     }
                 }
-                ControlSide::RIGHT => {
-                    if ev[1] >= SELF_SCREEN_SIZE[0] {
-                        listener_setBlock(1);
-                        POS_IN_REMOTE_SCREEN[0] = 0;
-                        POS_IN_REMOTE_SCREEN[1] = ev[2];
-                        BLOCK = true;
-                    }
+                2 => {
+                    MOUSE_BUTTON_HOLD = true;
+                }
+                3 => {
+                    MOUSE_BUTTON_HOLD = false;
                 }
                 _ => {}
             }
