@@ -1,5 +1,5 @@
+use actix_web::web;
 use actix_web::{get, HttpResponse, Responder};
-use actix_web::{web, HttpRequest};
 use include_dir::include_dir;
 use include_dir::Dir;
 

@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use rusqlite::Connection;
 
 use crate::{global::device::RemoteDevice, input::listener::ControlSide};

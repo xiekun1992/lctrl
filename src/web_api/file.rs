@@ -17,3 +17,6 @@ pub async fn post(MultipartForm(form): MultipartForm<UploadForm>) -> impl Respon
     }
     HttpResponse::Ok().json(true)
 }
+
+// #[get("/file")]
+// pub async fn get() -> impl Responder {}

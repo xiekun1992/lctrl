@@ -1,5 +1,4 @@
 use std::{
-    borrow::BorrowMut,
     ffi::c_int,
     sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
