@@ -1,5 +1,6 @@
 pub mod udp_server;
 
+use log::info;
 use std::{
     sync::Arc,
     thread,
@@ -59,4 +60,6 @@ pub fn init() {
             }
         }
     });
+
+    info!("discover module init");
 }

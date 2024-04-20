@@ -1,8 +1,19 @@
-mod udp_server;
+use crate::input::udp_server::UDPServer;
+use lazy_static::lazy_static;
+use log::info;
 
 mod clipboard;
 pub mod listener;
+pub mod replay;
+mod udp_server;
+
+lazy_static! {
+    static ref SERVER: UDPServer = UDPServer::new(String::from("0.0.0.0"), 11233);
+}
 
 pub fn init() {
     listener::init();
+    replay::init();
+
+    info!("input module init");
 }

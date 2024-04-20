@@ -1,5 +1,5 @@
 use std::net::UdpSocket;
-use std::{slice, str};
+use std::{mem, slice, str};
 
 pub struct UDPServer {
     socket: UdpSocket,
@@ -16,12 +16,17 @@ impl UDPServer {
             _port: port,
         }
     }
-    pub fn recv(&self, cb: fn(&[u8])) {
+    pub fn recv(&self, cb: fn(&[u32])) {
         // let dev = DeviceInfo::new();
         let mut buf = [0; 512];
         loop {
             let (recv_size, _rinfo) = self.socket.recv_from(&mut buf).unwrap();
-            let bytes = unsafe { slice::from_raw_parts(buf.as_ptr(), recv_size) };
+            let bytes = unsafe {
+                slice::from_raw_parts(
+                    buf.as_ptr() as *const u32,
+                    recv_size / mem::size_of::<u32>(),
+                )
+            };
             {
                 cb(bytes);
             }

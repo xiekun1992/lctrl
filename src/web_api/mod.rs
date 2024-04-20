@@ -11,11 +11,13 @@ use actix_files::Files;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartFormConfig};
 use actix_web::{http, middleware, App, HttpServer};
 use actix_web::{web, HttpResponse};
+use log::info;
 
 #[actix_web::main]
 pub async fn web_main() -> std::io::Result<()> {
-    fs::create_dir_all("./tmp").expect("tmp dir init failed");
+    // fs::create_dir_all("./tmp").expect("tmp dir init failed");
 
+    info!("web module init");
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
@@ -38,7 +40,7 @@ pub async fn web_main() -> std::io::Result<()> {
                     .memory_limit(usize::MAX)
                     .total_limit(usize::MAX),
             )
-            .app_data(TempFileConfig::default().directory("./tmp"))
+            // .app_data(TempFileConfig::default().directory("./tmp"))
             // .service(Files::new("/static", "./static/build/static"))
             // .service(Files::new("/static", "./static").show_files_listing())
             .service(
