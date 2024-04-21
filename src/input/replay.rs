@@ -4,7 +4,7 @@ use log::debug;
 
 use super::SERVER;
 
-#[link(name = "libinput")]
+#[link(name = "libcapture")]
 extern "C" {
     fn mouse_move(x: c_int, y: c_int);
     fn mouse_wheel(direction: i32);
