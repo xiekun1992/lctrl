@@ -2,7 +2,7 @@ use crate::input::udp_server::UDPServer;
 use lazy_static::lazy_static;
 use log::info;
 
-mod clipboard;
+pub mod clipboard;
 pub mod listener;
 pub mod replay;
 mod udp_server;
@@ -12,6 +12,7 @@ lazy_static! {
 }
 
 pub fn init() {
+    clipboard::init();
     listener::init();
     replay::init();
 

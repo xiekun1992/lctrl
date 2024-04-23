@@ -1,3 +1,4 @@
+mod clipboard;
 mod device;
 mod file;
 mod frontend;
@@ -45,6 +46,7 @@ pub async fn web_main() -> std::io::Result<()> {
             // .service(Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api")
+                    .service(clipboard::put)
                     .service(file::post)
                     .service(device::get)
                     .service(remotes::get)
