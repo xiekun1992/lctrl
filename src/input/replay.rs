@@ -1,4 +1,4 @@
-use std::{ffi::c_int, mem, slice, thread};
+use std::{ffi::c_int, slice, thread};
 
 use log::debug;
 
