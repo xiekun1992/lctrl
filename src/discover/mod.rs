@@ -1,6 +1,6 @@
 pub mod udp_server;
 
-use log::info;
+use log::{error, info};
 use std::{
     sync::Arc,
     thread,
@@ -8,10 +8,7 @@ use std::{
 };
 use udp_server::UDPServer;
 
-use crate::{
-    global::state::STATE,
-    input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE},
-};
+use crate::global::state::STATE;
 
 pub fn init() {
     let udp_discover = UDPServer::new("0.0.0.0".to_string(), 11232);
@@ -36,27 +33,28 @@ pub fn init() {
                 0
             }
         };
-        {
-            let state = STATE.try_lock().unwrap();
-            {
+
+        match STATE.try_lock() {
+            Ok(state) => {
                 let mut remotes = state.remotes.try_lock().unwrap();
                 remotes.retain(|item| {
                     // println!("{}, {}", timestamp, item.alive_timestamp);
                     (timestamp - item.alive_timestamp) < 5u64
                 });
-                // println!("{:?}", remotes);
+                // println!("{:?} {:?}", remotes, state.remote_peer);
                 match state.remote_peer.clone() {
                     Some(rdev) => {
                         if remotes.iter().find(|item| item.ip.eq(&rdev.ip)).is_none() {
-                            unsafe {
-                                REMOTE_SCREEN_SIZE = [0, 0];
-                                SELF_SCREEN_SIZE = [0, 0];
-                                SIDE = ControlSide::NONE;
-                            }
+                            crate::input::listener::release();
+                        } else {
+                            crate::input::listener::keepalive();
                         }
                     }
                     None => {}
                 }
+            }
+            Err(err) => {
+                error!("{:?}", err);
             }
         }
     });

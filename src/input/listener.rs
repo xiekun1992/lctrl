@@ -28,6 +28,7 @@ pub static mut SIDE: ControlSide = ControlSide::NONE;
 static mut POS_IN_REMOTE_SCREEN: [i32; 2] = [0, 0];
 static mut BLOCK: bool = false;
 static mut MOUSE_BUTTON_HOLD: bool = false;
+static mut IS_REMOTE_ALIVE: bool = false;
 
 fn send_to_remote(ev: &[i32]) {
     unsafe {
@@ -49,6 +50,9 @@ fn send_to_remote(ev: &[i32]) {
 
 extern "C" fn mouse_handler(ev: *const c_long) {
     unsafe {
+        if !IS_REMOTE_ALIVE {
+            return;
+        }
         let ev = slice::from_raw_parts(ev, 5);
 
         // println!(
@@ -145,6 +149,9 @@ extern "C" fn mouse_handler(ev: *const c_long) {
 
 extern "C" fn keyboard_handler(ev: *const c_long) {
     unsafe {
+        if !IS_REMOTE_ALIVE {
+            return;
+        }
         if BLOCK {
             let ev = slice::from_raw_parts(ev, 7);
             debug!("keyboard: {:?}", ev);
@@ -158,4 +165,26 @@ pub fn init() {
         listener_init(mouse_handler, keyboard_handler);
         listener_listen();
     });
+}
+
+pub fn release() {
+    debug!("release");
+    unsafe {
+        if IS_REMOTE_ALIVE {
+            REMOTE_SCREEN_SIZE = [0, 0];
+            SELF_SCREEN_SIZE = [0, 0];
+            SIDE = ControlSide::NONE;
+            BLOCK = false;
+            IS_REMOTE_ALIVE = false;
+            // POS_IN_REMOTE_SCREEN[0] = 0;
+            listener_setBlock(0);
+        }
+    }
+}
+
+pub fn keepalive() {
+    debug!("keepalive");
+    unsafe {
+        IS_REMOTE_ALIVE = true;
+    }
 }
