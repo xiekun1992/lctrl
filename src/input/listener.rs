@@ -39,7 +39,7 @@ fn send_to_remote(ev: &[i32]) {
             match &STATE.lock().unwrap().get_remote_peer() {
                 Some(peer) => {
                     let addr = format!("{}:11233", peer.ip);
-                    debug!("{:?}", ev);
+                    // debug!("{:?}", ev);
                     SERVER.send(&bytes, &addr);
                 }
                 None => {}
@@ -154,7 +154,7 @@ extern "C" fn keyboard_handler(ev: *const c_long) {
         }
         if BLOCK {
             let ev = slice::from_raw_parts(ev, 7);
-            debug!("keyboard: {:?}", ev);
+            // debug!("keyboard: {:?}", ev);
             send_to_remote(ev);
         }
     }
@@ -168,7 +168,7 @@ pub fn init() {
 }
 
 pub fn release() {
-    debug!("release");
+    // debug!("release");
     unsafe {
         if IS_REMOTE_ALIVE {
             REMOTE_SCREEN_SIZE = [0, 0];
@@ -183,7 +183,7 @@ pub fn release() {
 }
 
 pub fn keepalive() {
-    debug!("keepalive");
+    // debug!("keepalive");
     unsafe {
         IS_REMOTE_ALIVE = true;
     }

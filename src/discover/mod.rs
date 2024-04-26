@@ -1,6 +1,6 @@
 pub mod udp_server;
 
-use log::{error, info};
+use log::{debug, error, info};
 use std::{
     sync::Arc,
     thread,
@@ -41,7 +41,7 @@ pub fn init() {
                     // println!("{}, {}", timestamp, item.alive_timestamp);
                     (timestamp - item.alive_timestamp) < 5u64
                 });
-                // println!("{:?} {:?}", remotes, state.remote_peer);
+                // debug!("{:?} {:?}", remotes, state.remote_peer);
                 match state.remote_peer.clone() {
                     Some(rdev) => {
                         if remotes.iter().find(|item| item.ip.eq(&rdev.ip)).is_none() {

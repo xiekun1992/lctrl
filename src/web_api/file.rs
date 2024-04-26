@@ -1,5 +1,8 @@
+use std::{fs, io::Read};
+
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{post, HttpResponse, Responder};
+use log::info;
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
@@ -9,11 +12,15 @@ pub struct UploadForm {
 
 #[post("/file")]
 pub async fn post(MultipartForm(form): MultipartForm<UploadForm>) -> impl Responder {
-    println!("file upload: {}", form.files.len());
+    info!("file upload: {}", form.files.len());
+    if fs::metadata("./tmp").is_err() {
+        fs::create_dir("./tmp").unwrap();
+    }
     for f in form.files {
         let path = format!("./tmp/{}", f.file_name.unwrap());
-        println!("saving to {path}");
-        f.file.persist(path).unwrap();
+        info!("saving to {path}, {:?}", f.file.path());
+        fs::copy(f.file.path(), path).unwrap();
+        // f.file.persist(path).unwrap();
     }
     HttpResponse::Ok().json(true)
 }
