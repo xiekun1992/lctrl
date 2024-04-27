@@ -171,9 +171,9 @@ pub fn release() {
     // debug!("release");
     unsafe {
         if IS_REMOTE_ALIVE {
-            REMOTE_SCREEN_SIZE = [0, 0];
-            SELF_SCREEN_SIZE = [0, 0];
-            SIDE = ControlSide::NONE;
+            // REMOTE_SCREEN_SIZE = [0, 0];
+            // SELF_SCREEN_SIZE = [0, 0];
+            // SIDE = ControlSide::NONE;
             BLOCK = false;
             IS_REMOTE_ALIVE = false;
             // POS_IN_REMOTE_SCREEN[0] = 0;

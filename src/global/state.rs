@@ -38,8 +38,12 @@ impl State {
         }
         let db = DB::new();
         let (remote_peer, side) = db.get_remote_peer();
+        let mut remotes = Vec::new();
+        if let Some(peer) = remote_peer.clone() {
+            remotes.push(peer);
+        }
         State {
-            remotes: Mutex::new(Vec::new()),
+            remotes: Mutex::new(remotes),
             cur_device: DeviceInfo::new(),
             screen_size,
             remote_peer,
@@ -48,7 +52,7 @@ impl State {
         }
     }
 
-    pub fn get_remote_peer(&mut self) -> Option<RemoteDevice> {
+    pub fn get_remote_peer(&self) -> Option<RemoteDevice> {
         self.remote_peer.clone()
     }
 

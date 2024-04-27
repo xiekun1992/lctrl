@@ -34,12 +34,21 @@ pub fn init() {
             }
         };
 
-        match STATE.try_lock() {
+        match STATE.lock() {
             Ok(state) => {
                 let mut remotes = state.remotes.try_lock().unwrap();
                 remotes.retain(|item| {
                     // println!("{}, {}", timestamp, item.alive_timestamp);
-                    (timestamp - item.alive_timestamp) < 5u64
+                    match state.get_remote_peer() {
+                        Some(peer) => {
+                            if item.ip.ne(&peer.ip) {
+                                (timestamp - item.alive_timestamp) < 3u64
+                            } else {
+                                true
+                            }
+                        }
+                        None => (timestamp - item.alive_timestamp) < 3u64,
+                    }
                 });
                 // debug!("{:?} {:?}", remotes, state.remote_peer);
                 match state.remote_peer.clone() {

@@ -46,6 +46,7 @@ pub async fn web_main() -> std::io::Result<()> {
             // .service(Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api")
+                    .service(launch::put)
                     .service(clipboard::put)
                     .service(file::post)
                     .service(device::get)

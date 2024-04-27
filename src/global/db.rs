@@ -17,7 +17,8 @@ impl DB {
                 mac_addr varchar(255),
                 screen_size_x integer,
                 screen_size_y integer,
-                side integer
+                side integer,
+                netmask varchar(255)
             )",
             (),
         )
@@ -34,15 +35,15 @@ impl DB {
         };
         self.conn
             .execute(
-                "insert into remote_peer(hostname, ip, screen_size_x, screen_size_y, mac_addr, side) values (?1, ?2, ?3, ?4, ?5, ?6)",
-                (&remote_peer.hostname, &remote_peer.ip, &remote_peer.screen_size[0], &remote_peer.screen_size[1], &remote_peer.mac_addr, &remote_peer_side),
+                "insert into remote_peer(hostname, ip, screen_size_x, screen_size_y, mac_addr, side, netmask) values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                (&remote_peer.hostname, &remote_peer.ip, &remote_peer.screen_size[0], &remote_peer.screen_size[1], &remote_peer.mac_addr, &remote_peer_side, &remote_peer.netmask),
             )
             .unwrap();
     }
 
     pub fn get_remote_peer(&self) -> (Option<RemoteDevice>, ControlSide) {
         match self.conn.prepare(
-            "select hostname, ip, screen_size_x, screen_size_y, side, mac_addr from remote_peer",
+            "select hostname, ip, screen_size_x, screen_size_y, side, mac_addr, netmask from remote_peer",
         ) {
             Ok(mut stmt) => {
                 let mut iter = stmt
@@ -54,6 +55,7 @@ impl DB {
                             mac_addr: row.get(5).unwrap(),
                             screen_size: [row.get(2).unwrap(), row.get(3).unwrap()],
                             alive_timestamp: 0,
+                            netmask: row.get(6).unwrap(),
                         };
                         let mut side = ControlSide::NONE;
                         match row.get(4).unwrap() {

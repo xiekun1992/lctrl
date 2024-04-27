@@ -21,6 +21,7 @@ pub struct DeviceInfo {
 pub struct RemoteDevice {
     pub hostname: String,
     pub ip: String,
+    pub netmask: String,
     pub mac_addr: String,
     pub screen_size: [i32; 2],
     pub alive_timestamp: u64,
@@ -69,7 +70,7 @@ impl DeviceInfo {
     }
 }
 
-fn calc_broadcast_addr(addr: Ipv4Addr, netmask: Ipv4Addr) -> Ipv4Addr {
+pub fn calc_broadcast_addr(addr: Ipv4Addr, netmask: Ipv4Addr) -> Ipv4Addr {
     let ipv4 = addr.octets();
     let mask = netmask.octets();
     let mut broadcast = [0; 4];

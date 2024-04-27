@@ -1,22 +1,46 @@
-use std::net::UdpSocket;
+use std::{
+    net::{Ipv4Addr, UdpSocket},
+    str::FromStr,
+};
 
 use actix_web::{post, web, HttpResponse, Responder};
+use log::{debug, info};
 
-use crate::{global::state::STATE, web_api::remote_peer::RemoteSetting};
+use crate::{
+    global::{device::calc_broadcast_addr, state::STATE},
+    web_api::remote_peer::RemoteSetting,
+};
 
 #[post("/launch")]
 pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
-    let state = STATE.lock().unwrap();
-    let remote = state.find_remote_by_ip(&setting.ip.as_str());
-    if let Some(rdev) = remote.clone() {
-        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-        let packet = gen_wol_magic_packet(rdev.mac_addr.as_str());
-        let addr = format!("{}:{}", rdev.ip, 7);
-        socket
-            .send_to(packet.as_slice(), addr)
-            .expect("WOL magic packet send fail");
+    let mut state = STATE.lock().unwrap();
+    if let Some(remote) = state.get_remote_peer() {
+        if setting.ip.eq(&remote.ip) && state.side.eq(&setting.side) {
+            debug!("{:?}", remote);
+            let socket = UdpSocket::bind("0.0.0.0:18001").unwrap();
+            let packet = gen_wol_magic_packet(remote.mac_addr.as_str());
+            let ip_addr = Ipv4Addr::from_str(remote.ip.as_str()).unwrap();
+            let netmask = Ipv4Addr::from_str(remote.netmask.as_str()).unwrap();
+
+            let broadcast_addr = calc_broadcast_addr(ip_addr, netmask);
+            let addr = format!("{}:{}", broadcast_addr.clone().to_string(), 7);
+            info!(
+                "magic packet sent: {:?}, ip: {:?}, netmask: {:?}",
+                addr,
+                ip_addr.clone(),
+                netmask.clone()
+            );
+            socket
+                .send_to(packet.as_slice(), addr)
+                .expect("WOL magic packet send fail");
+
+            HttpResponse::Ok().json(())
+        } else {
+            HttpResponse::NotFound().json(())
+        }
+    } else {
+        HttpResponse::NotFound().json(())
     }
-    HttpResponse::Ok().json(())
 }
 
 fn gen_wol_magic_packet(mac_addr: &str) -> Vec<u8> {
