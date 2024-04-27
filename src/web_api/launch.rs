@@ -13,7 +13,7 @@ use crate::{
 
 #[post("/launch")]
 pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
-    let mut state = STATE.lock().unwrap();
+    let state = STATE.lock().unwrap();
     if let Some(remote) = state.get_remote_peer() {
         if setting.ip.eq(&remote.ip) && state.side.eq(&setting.side) {
             debug!("{:?}", remote);

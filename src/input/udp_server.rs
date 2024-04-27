@@ -20,15 +20,16 @@ impl UDPServer {
         // let dev = DeviceInfo::new();
         let mut buf = [0; 512];
         loop {
-            let (recv_size, _rinfo) = self.socket.recv_from(&mut buf).unwrap();
-            let bytes = unsafe {
-                slice::from_raw_parts(
-                    buf.as_ptr() as *const u32,
-                    recv_size / mem::size_of::<u32>(),
-                )
-            };
-            {
-                cb(bytes);
+            if let Ok((recv_size, _rinfo)) = self.socket.recv_from(&mut buf) {
+                let bytes = unsafe {
+                    slice::from_raw_parts(
+                        buf.as_ptr() as *const u32,
+                        recv_size / mem::size_of::<u32>(),
+                    )
+                };
+                {
+                    cb(bytes);
+                }
             }
         }
     }
