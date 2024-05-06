@@ -3,6 +3,7 @@ use std::{
     iter::once,
     os::windows::prelude::OsStrExt,
     slice, thread,
+    time::Duration,
 };
 
 use log::{debug, error, info};
@@ -49,6 +50,7 @@ extern "C" fn cb() {
                     .put(url)
                     .header("content-type", "application/json")
                     .body(body_str)
+                    .timeout(Duration::from_millis(500))
                     .send()
                 {
                     Ok(res) => {
