@@ -1,6 +1,6 @@
 use std::{ffi::c_int, slice, thread};
 
-use log::debug;
+// use log::debug;
 
 use super::SERVER;
 
@@ -19,7 +19,7 @@ extern "C" {
 fn replay_input(bytes: &[u32]) {
     unsafe {
         let bytes = slice::from_raw_parts(bytes.as_ptr() as *const i32, bytes.len());
-        debug!("{:?}", bytes);
+        // debug!("{:?}", bytes);
         // println!("{} - {:?}", Local::now(), bytes);
         match bytes[0] {
             0 => {
