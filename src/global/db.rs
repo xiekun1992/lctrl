@@ -2,6 +2,8 @@ use rusqlite::Connection;
 
 use crate::{global::device::RemoteDevice, input::listener::ControlSide};
 
+use super::state::Rect;
+
 pub struct DB {
     conn: Connection,
 }
@@ -15,8 +17,10 @@ impl DB {
                 hostname varchar(255),
                 ip varchar(255),
                 mac_addr varchar(255),
-                screen_size_x integer,
-                screen_size_y integer,
+                screen_size_left integer, 
+                screen_size_right integer, 
+                screen_size_top integer, 
+                screen_size_bottom integer, 
                 side integer,
                 netmask varchar(255)
             )",
@@ -35,15 +39,41 @@ impl DB {
         };
         self.conn
             .execute(
-                "insert into remote_peer(hostname, ip, screen_size_x, screen_size_y, mac_addr, side, netmask) values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                (&remote_peer.hostname, &remote_peer.ip, &remote_peer.screen_size[0], &remote_peer.screen_size[1], &remote_peer.mac_addr, &remote_peer_side, &remote_peer.netmask),
+                r#"
+                    insert into remote_peer(
+                        hostname, 
+                        ip, 
+                        screen_size_left, 
+                        screen_size_right, 
+                        screen_size_top, 
+                        screen_size_bottom, 
+                        mac_addr, side, netmask
+                    ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"#,
+                (
+                    &remote_peer.hostname,
+                    &remote_peer.ip,
+                    &remote_peer.screen_size.left,
+                    &remote_peer.screen_size.right,
+                    &remote_peer.screen_size.top,
+                    &remote_peer.screen_size.bottom,
+                    &remote_peer.mac_addr,
+                    &remote_peer_side,
+                    &remote_peer.netmask,
+                ),
             )
             .unwrap();
     }
 
     pub fn get_remote_peer(&self) -> (Option<RemoteDevice>, ControlSide) {
         match self.conn.prepare(
-            "select hostname, ip, screen_size_x, screen_size_y, side, mac_addr, netmask from remote_peer",
+            r#"select 
+                    hostname, ip, 
+                    screen_size_left, 
+                    screen_size_right, 
+                    screen_size_top, 
+                    screen_size_bottom, 
+                    side, mac_addr, netmask 
+                from remote_peer"#,
         ) {
             Ok(mut stmt) => {
                 let mut iter = stmt
@@ -52,13 +82,18 @@ impl DB {
                         let remote_peer = RemoteDevice {
                             hostname: row.get(0).unwrap(),
                             ip: row.get(1).unwrap(),
-                            mac_addr: row.get(5).unwrap(),
-                            screen_size: [row.get(2).unwrap(), row.get(3).unwrap()],
+                            mac_addr: row.get(7).unwrap(),
+                            screen_size: Rect::from(
+                                row.get(2).unwrap(),
+                                row.get(4).unwrap(),
+                                row.get(3).unwrap(),
+                                row.get(5).unwrap(),
+                            ),
                             alive_timestamp: 0,
-                            netmask: row.get(6).unwrap(),
+                            netmask: row.get(8).unwrap(),
                         };
                         let mut side = ControlSide::NONE;
-                        match row.get(4).unwrap() {
+                        match row.get(6).unwrap() {
                             0 => side = ControlSide::NONE,
                             1 => side = ControlSide::LEFT,
                             2 => side = ControlSide::RIGHT,

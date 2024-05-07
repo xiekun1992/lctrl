@@ -28,15 +28,19 @@ impl UDPServer {
             let (data, rinfo) = self.socket.recv_from(&mut buf).unwrap();
             let remote = RemoteDevice::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
 
-            let mut state = STATE.lock().unwrap();
-            let dev = &state.cur_device;
-            // println!("{:?}, {:?}", dev, remote);
-            if dev
-                .ifs
-                .iter()
-                .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
-            {
-                state.add_remote(remote);
+            match STATE.lock() {
+                Ok(mut state) => {
+                    let dev = &state.cur_device;
+                    // println!("{:?}, {:?}", dev, remote);
+                    if dev
+                        .ifs
+                        .iter()
+                        .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
+                    {
+                        state.add_remote(remote);
+                    }
+                }
+                Err(_e) => {}
             }
         }
     }

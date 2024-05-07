@@ -17,8 +17,8 @@ pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
     let remote = state.find_remote_by_ip(&setting.ip.as_str());
     if let Some(rdev) = remote.clone() {
         unsafe {
-            REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
-            SELF_SCREEN_SIZE = state.screen_size.clone();
+            REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_arr();
+            SELF_SCREEN_SIZE = state.screen_size.clone().to_arr();
             SIDE = setting.side;
             state.set_remote_peer(remote, &SIDE);
         }

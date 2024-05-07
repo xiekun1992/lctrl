@@ -3,6 +3,8 @@ use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 
+use super::state::Rect;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Interface {
     pub addr: Ipv4Addr,
@@ -23,7 +25,7 @@ pub struct RemoteDevice {
     pub ip: String,
     pub netmask: String,
     pub mac_addr: String,
-    pub screen_size: [i32; 2],
+    pub screen_size: Rect,
     pub alive_timestamp: u64,
 }
 

@@ -1,5 +1,5 @@
 use std::{
-    ffi::c_int,
+    ffi::c_long,
     sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -11,10 +11,52 @@ use super::{
     device::{DeviceInfo, RemoteDevice},
 };
 use lazy_static::lazy_static;
+use log::info;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug)]
+#[repr(C)]
+struct RECT {
+    left: c_long,
+    top: c_long,
+    right: c_long,
+    bottom: c_long,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Rect {
+    pub left: i32,
+    pub top: i32,
+    pub right: i32,
+    pub bottom: i32,
+}
+
+impl Rect {
+    pub fn new() -> Self {
+        Rect {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        }
+    }
+    pub fn from(left: i32, top: i32, right: i32, bottom: i32) -> Self {
+        Rect {
+            left,
+            top,
+            right,
+            bottom,
+        }
+    }
+    pub fn to_arr(&self) -> [i32; 4] {
+        [self.left, self.right, self.top, self.bottom]
+    }
+}
 
 #[link(name = "libcapture")]
 extern "C" {
-    fn get_screen_size(size: *const c_int);
+    fn get_screen_size() -> RECT;
+    // fn get_screen_size(size: *const c_int);
 }
 
 lazy_static! {
@@ -25,16 +67,22 @@ pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
     pub remote_peer: Option<RemoteDevice>,
-    pub screen_size: [i32; 2],
+    pub screen_size: Rect,
     pub side: ControlSide,
     pub db: DB,
 }
 
 impl State {
     fn new() -> State {
-        let mut screen_size = [0, 0];
+        let mut screen_size = Rect::new();
         unsafe {
-            get_screen_size(screen_size.as_mut_ptr());
+            // get_screen_size(screen_size.as_mut_ptr());
+            let s = get_screen_size();
+            info!("screen rect: {:?}", s);
+            screen_size.left = s.left;
+            screen_size.top = s.top;
+            screen_size.right = s.right;
+            screen_size.bottom = s.bottom;
         }
         let db = DB::new();
         let (remote_peer, side) = db.get_remote_peer();
@@ -66,6 +114,7 @@ impl State {
             }
         }
         self.remote_peer = peer;
+        self.side = *side;
     }
 
     pub fn get_remote(&self) -> Vec<RemoteDevice> {
@@ -95,8 +144,8 @@ impl State {
             Some(rdev) => {
                 if self.find_remote_by_ip(&rdev.ip).is_some() {
                     unsafe {
-                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone();
-                        SELF_SCREEN_SIZE = self.screen_size.clone();
+                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_arr();
+                        SELF_SCREEN_SIZE = self.screen_size.clone().to_arr();
                         SIDE = self.side.clone();
                     }
                 }
