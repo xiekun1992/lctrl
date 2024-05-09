@@ -1,11 +1,10 @@
-use default_net;
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 
 use super::state::Rect;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Interface {
     pub addr: Ipv4Addr,
     pub netmask: Ipv4Addr,
@@ -42,34 +41,42 @@ impl RemoteDevice {
 
 impl DeviceInfo {
     pub fn new() -> DeviceInfo {
-        let mut ifs = Vec::new();
-
-        let interfaces = default_net::get_interfaces();
-        for interface in interfaces {
-            let mut avail = true;
-            for ip in interface.ipv4.as_slice() {
-                if ip.addr.is_link_local() || ip.addr.is_loopback() {
-                    avail = false;
-                }
-            }
-
-            if avail {
-                ifs.push(Interface {
-                    addr: interface.ipv4[0].addr,
-                    netmask: interface.ipv4[0].netmask,
-                    mac_addr: interface.mac_addr.unwrap().to_string(),
-                    broadcast_addr: calc_broadcast_addr(
-                        interface.ipv4[0].addr,
-                        interface.ipv4[0].netmask,
-                    ),
-                });
-            }
-        }
         DeviceInfo {
             hostname: String::from(gethostname().to_str().unwrap()),
-            ifs,
+            ifs: get_interfaces(),
         }
     }
+}
+
+pub fn get_interfaces() -> Vec<Interface> {
+    let mut ifs = Vec::new();
+
+    let interfaces = netdev::get_interfaces();
+    for interface in interfaces {
+        if !interface.is_up() {
+            continue;
+        }
+        let mut avail = true;
+        for ip in interface.ipv4.as_slice() {
+            if ip.addr.is_link_local() || ip.addr.is_loopback() {
+                avail = false;
+            }
+        }
+
+        if avail {
+            ifs.push(Interface {
+                addr: interface.ipv4[0].addr,
+                netmask: interface.ipv4[0].netmask,
+                mac_addr: interface.mac_addr.unwrap().to_string(),
+                broadcast_addr: calc_broadcast_addr(
+                    interface.ipv4[0].addr,
+                    interface.ipv4[0].netmask,
+                ),
+            });
+        }
+    }
+
+    ifs
 }
 
 pub fn calc_broadcast_addr(addr: Ipv4Addr, netmask: Ipv4Addr) -> Ipv4Addr {

@@ -27,7 +27,7 @@ impl UDPServer {
         loop {
             let (data, rinfo) = self.socket.recv_from(&mut buf).unwrap();
             let remote = RemoteDevice::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
-
+            // println!("{:?}", remote);
             match STATE.lock() {
                 Ok(mut state) => {
                     let dev = &state.cur_device;
@@ -45,25 +45,25 @@ impl UDPServer {
         }
     }
     pub fn send(&self) {
-        let mut remote_infos = Vec::new();
-        {
-            let state = STATE.lock().unwrap();
-            let dev = &state.cur_device;
-            for interface in &dev.ifs {
-                let addr = format!("{}:{}", interface.broadcast_addr, self.port);
-                let remote = RemoteDevice {
-                    hostname: dev.hostname.clone(),
-                    ip: interface.addr.to_string(),
-                    mac_addr: interface.mac_addr.clone(),
-                    screen_size: state.screen_size.clone(),
-                    netmask: interface.netmask.to_string(),
-                    alive_timestamp: 0,
-                }
-                .to_json();
-                remote_infos.push((remote, addr));
-            }
-        }
         loop {
+            let mut remote_infos = Vec::new();
+            {
+                let state = STATE.lock().unwrap();
+                let dev = &state.cur_device;
+                for interface in &dev.ifs {
+                    let addr = format!("{}:{}", interface.broadcast_addr, self.port);
+                    let remote = RemoteDevice {
+                        hostname: dev.hostname.clone(),
+                        ip: interface.addr.to_string(),
+                        mac_addr: interface.mac_addr.clone(),
+                        screen_size: state.screen_size.clone(),
+                        netmask: interface.netmask.to_string(),
+                        alive_timestamp: 0,
+                    }
+                    .to_json();
+                    remote_infos.push((remote, addr));
+                }
+            }
             for (remote, addr) in &remote_infos {
                 match self.socket.send_to(remote.as_bytes(), addr) {
                     Err(e) => {

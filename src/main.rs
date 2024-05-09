@@ -18,6 +18,8 @@ fn main() {
 
     info!("log module init");
 
+    global::init();
+
     discover::init();
 
     input::init();
