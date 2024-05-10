@@ -62,48 +62,64 @@ extern "C" fn mouse_handler(ev: *const c_long) {
         // 控制状态下转发鼠标动作
         if BLOCK {
             // mousemoverel
-            if ev[0] == 6 {
-                POS_IN_REMOTE_SCREEN[0] += ev[1];
-                POS_IN_REMOTE_SCREEN[1] += ev[2];
-                // 检测是否移动到屏幕边缘并解除控制
-                match SIDE {
-                    ControlSide::LEFT => {
-                        if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                            listener_setBlock(0);
-                            BLOCK = false;
-                            POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+            match ev[0] {
+                6 => {
+                    POS_IN_REMOTE_SCREEN[0] += ev[1];
+                    POS_IN_REMOTE_SCREEN[1] += ev[2];
+                    // 检测是否移动到屏幕边缘并解除控制
+                    match SIDE {
+                        ControlSide::LEFT => {
+                            if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
+                                if !MOUSE_BUTTON_HOLD {
+                                    listener_setBlock(0);
+                                    BLOCK = false;
+                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+                                }
+                            }
                         }
-                    }
-                    ControlSide::RIGHT => {
-                        if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                            listener_setBlock(0);
-                            BLOCK = false;
-                            POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                        ControlSide::RIGHT => {
+                            if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
+                                if !MOUSE_BUTTON_HOLD {
+                                    listener_setBlock(0);
+                                    BLOCK = false;
+                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                                }
+                            }
                         }
+                        _ => {}
                     }
-                    _ => {}
-                }
-                // 检测是否超过屏幕上下限
-                if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                }
-                if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                }
-                if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
-                    POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
-                }
-                if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
-                    POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
-                }
+                    // 检测是否超过屏幕上下限
+                    if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
+                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                    }
+                    if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
+                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+                    }
+                    if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
+                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
+                    }
+                    if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
+                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+                    }
 
-                // 鼠标相对移动转换成绝对移动
-                let x = POS_IN_REMOTE_SCREEN[0];
-                let y = POS_IN_REMOTE_SCREEN[1];
-                let bytes_to_send = [1, x, y];
-                send_to_remote(bytes_to_send.as_slice());
-            } else if ev[0] != 1 {
-                send_to_remote(ev);
+                    // 鼠标相对移动转换成绝对移动
+                    let x = POS_IN_REMOTE_SCREEN[0];
+                    let y = POS_IN_REMOTE_SCREEN[1];
+                    let bytes_to_send = [1, x, y];
+                    send_to_remote(bytes_to_send.as_slice());
+                }
+                1 => {}
+                2 => {
+                    MOUSE_BUTTON_HOLD = true;
+                    send_to_remote(ev);
+                }
+                3 => {
+                    MOUSE_BUTTON_HOLD = false;
+                    send_to_remote(ev);
+                }
+                _ => {
+                    send_to_remote(ev);
+                }
             }
         }
 
