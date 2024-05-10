@@ -15,6 +15,14 @@ extern "C" {
     fn listener_setBlock(block: c_int);
 }
 
+pub const MOUSE_WHEEL: i32 = 0;
+pub const MOUSE_MOVE: i32 = 1;
+pub const MOUSE_DOWN: i32 = 2;
+pub const MOUSE_UP: i32 = 3;
+pub const KEY_DOWN: i32 = 4;
+pub const KEY_UP: i32 = 5;
+pub const MOUSE_REL_MOVE: i32 = 6;
+
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 pub enum ControlSide {
     NONE,
@@ -63,7 +71,7 @@ extern "C" fn mouse_handler(ev: *const c_long) {
         if BLOCK {
             // mousemoverel
             match ev[0] {
-                6 => {
+                MOUSE_REL_MOVE => {
                     POS_IN_REMOTE_SCREEN[0] += ev[1];
                     POS_IN_REMOTE_SCREEN[1] += ev[2];
                     // 检测是否移动到屏幕边缘并解除控制
@@ -108,12 +116,12 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                     let bytes_to_send = [1, x, y];
                     send_to_remote(bytes_to_send.as_slice());
                 }
-                1 => {}
-                2 => {
+                MOUSE_MOVE => {}
+                MOUSE_DOWN => {
                     MOUSE_BUTTON_HOLD = true;
                     send_to_remote(ev);
                 }
-                3 => {
+                MOUSE_UP => {
                     MOUSE_BUTTON_HOLD = false;
                     send_to_remote(ev);
                 }
@@ -126,7 +134,7 @@ extern "C" fn mouse_handler(ev: *const c_long) {
         // 非控制下检测鼠标移动，判断是否进入控制
         if !BLOCK {
             match ev[0] {
-                1 => {
+                MOUSE_MOVE => {
                     // mousemove
                     if MOUSE_BUTTON_HOLD {
                         return;
@@ -151,10 +159,10 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                         _ => {}
                     }
                 }
-                2 => {
+                MOUSE_DOWN => {
                     MOUSE_BUTTON_HOLD = true;
                 }
-                3 => {
+                MOUSE_UP => {
                     MOUSE_BUTTON_HOLD = false;
                 }
                 _ => {}
