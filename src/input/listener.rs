@@ -1,5 +1,6 @@
 use super::SERVER;
 use crate::global::state::STATE;
+use log::info;
 // use log::debug;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -8,11 +9,17 @@ use std::{
 };
 
 type CInputHandler = extern "C" fn(*const c_long);
+type HotKeyHandler = extern "C" fn();
 #[link(name = "libcapture")]
 extern "C" {
-    fn listener_init(mouseHanlder: CInputHandler, keyboardHanlder: CInputHandler);
+    fn listener_init(
+        mouseHanlder: CInputHandler,
+        keyboardHanlder: CInputHandler,
+        hotkeyHandler: HotKeyHandler,
+    );
     fn listener_listen();
     fn listener_setBlock(block: c_int);
+    fn mouse_move(x: c_int, y: c_int);
 }
 
 pub const MOUSE_WHEEL: i32 = 0;
@@ -184,9 +191,23 @@ extern "C" fn keyboard_handler(ev: *const c_long) {
     }
 }
 
+extern "C" fn hotkey_handler() {
+    info!("unblock hotkey triggered");
+    unsafe {
+        if BLOCK {
+            BLOCK = false;
+            listener_setBlock(0);
+            POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+            let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
+            let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
+            mouse_move(center_x, center_y);
+        }
+    }
+}
+
 pub fn init() {
     thread::spawn(|| unsafe {
-        listener_init(mouse_handler, keyboard_handler);
+        listener_init(mouse_handler, keyboard_handler, hotkey_handler);
         listener_listen();
     });
 }
