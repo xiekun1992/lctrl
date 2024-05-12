@@ -9,7 +9,7 @@ use std::{
 };
 
 type CInputHandler = extern "C" fn(*const c_long);
-type HotKeyHandler = extern "C" fn();
+type HotKeyHandler = extern "C" fn(*const [c_long; 7]);
 #[link(name = "libcapture")]
 extern "C" {
     fn listener_init(
@@ -47,6 +47,7 @@ static mut IS_REMOTE_ALIVE: bool = false;
 
 fn send_to_remote(ev: &[i32]) {
     unsafe {
+        // println!("{:?}", ev);
         let bytes =
             slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>());
         // println!("{:?}", bytes);
@@ -191,7 +192,7 @@ extern "C" fn keyboard_handler(ev: *const c_long) {
     }
 }
 
-extern "C" fn hotkey_handler() {
+extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
     info!("unblock hotkey triggered");
     unsafe {
         if BLOCK {
@@ -201,6 +202,12 @@ extern "C" fn hotkey_handler() {
             let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
             let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
             mouse_move(center_x, center_y);
+
+            // 通知受控端将按键释放
+            let hotkeys = slice::from_raw_parts(hotkeys, 5);
+            for key in hotkeys {
+                send_to_remote(key);
+            }
         }
     }
 }
