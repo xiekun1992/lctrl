@@ -86,10 +86,10 @@ impl State {
         }
         let db = DB::new();
         let (remote_peer, side) = db.get_remote_peer();
-        let mut remotes = Vec::new();
-        if let Some(peer) = remote_peer.clone() {
-            remotes.push(peer);
-        }
+        let remotes = Vec::new();
+        // if let Some(peer) = remote_peer.clone() {
+        //     remotes.push(peer);
+        // }
         State {
             remotes: Mutex::new(remotes),
             cur_device: DeviceInfo::new(),
