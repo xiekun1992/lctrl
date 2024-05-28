@@ -1,4 +1,8 @@
-use std::ffi::c_int;
+use std::{
+    env,
+    ffi::c_int,
+    process::{exit, Command},
+};
 
 use log::{error, info};
 
@@ -8,6 +12,9 @@ extern "C" {
     fn create_service();
     fn start_service();
     fn stop_service();
+
+    fn is_run_as_admin() -> c_int;
+    fn run_as_admin();
 }
 
 pub fn init() {
@@ -23,6 +30,9 @@ pub fn init() {
 pub fn bootstrap() {
     // TODO: 检查服务是否存在，不存在则注册并启动服务，存在则启动服务并退出
     unsafe {
+        if is_run_as_admin() == 0 {
+            run_as_admin();
+        }
         create_service();
         start_service();
     };
