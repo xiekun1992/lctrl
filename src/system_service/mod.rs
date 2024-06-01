@@ -1,8 +1,4 @@
-use std::{
-    env,
-    ffi::c_int,
-    process::{exit, Command},
-};
+use std::{env, ffi::c_int, process::Command};
 
 use log::{error, info};
 
@@ -21,7 +17,10 @@ extern "C" {
 pub fn add_windows_firewall_rule() {
     if let Ok(app_path) = env::current_exe() {
         let app_name = app_path.file_name().unwrap().to_str().unwrap();
-        let cmd = format!("netsh advfirewall firewall show rule name=\"{}\"", app_name);
+        let cmd = format!(
+            "netsh advfirewall firewall delete rule name=\"{}\"",
+            app_name
+        );
         info!("{}", cmd);
         let output = Command::new("cmd")
             .args(["/C", cmd.as_str()])
@@ -31,7 +30,7 @@ pub fn add_windows_firewall_rule() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             info!("Command executed successfully:");
             info!("{}", stdout);
-            return;
+            // return;
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
             error!("Command failed to execute:");
