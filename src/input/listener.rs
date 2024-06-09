@@ -8,19 +8,19 @@ use std::{
     mem, slice, thread,
 };
 
-type CInputHandler = extern "C" fn(*const c_long);
-type HotKeyHandler = extern "C" fn(*const [c_long; 7]);
-#[link(name = "libcapture")]
-extern "C" {
-    fn listener_init(
-        mouseHanlder: CInputHandler,
-        keyboardHanlder: CInputHandler,
-        hotkeyHandler: HotKeyHandler,
-    );
-    fn listener_listen();
-    fn listener_setBlock(block: c_int);
-    fn mouse_move(x: c_int, y: c_int);
-}
+type CInputHandler = extern "C" fn(*const c_int);
+type HotKeyHandler = extern "C" fn(*const [c_int; 7]);
+// #[link(name = "libcapture")]
+// extern "C" {
+//     fn listener_init(
+//         mouseHanlder: CInputHandler,
+//         keyboardHanlder: CInputHandler,
+//         hotkeyHandler: HotKeyHandler,
+//     );
+//     fn listener_listen();
+//     fn listener_setBlock(block: c_int);
+//     fn mouse_move(x: c_int, y: c_int);
+// }
 
 pub const MOUSE_WHEEL: i32 = 0;
 pub const MOUSE_MOVE: i32 = 1;
@@ -64,159 +64,159 @@ fn send_to_remote(ev: &[i32]) {
     }
 }
 
-extern "C" fn mouse_handler(ev: *const c_long) {
-    unsafe {
-        if !IS_REMOTE_ALIVE {
-            return;
-        }
-        let ev = slice::from_raw_parts(ev, 5);
+// extern "C" fn mouse_handler(ev: *const c_int) {
+//     unsafe {
+//         if !IS_REMOTE_ALIVE {
+//             return;
+//         }
+//         let ev = slice::from_raw_parts(ev, 5);
 
-        // println!(
-        //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
-        //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
-        // );
-        // 控制状态下转发鼠标动作
-        if BLOCK {
-            // mousemoverel
-            match ev[0] {
-                MOUSE_REL_MOVE => {
-                    POS_IN_REMOTE_SCREEN[0] += ev[1];
-                    POS_IN_REMOTE_SCREEN[1] += ev[2];
-                    // 检测是否移动到屏幕边缘并解除控制
-                    match SIDE {
-                        ControlSide::LEFT => {
-                            if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                                }
-                            }
-                        }
-                        ControlSide::RIGHT => {
-                            if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                    // 检测是否超过屏幕上下限
-                    if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                    }
-                    if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                    }
-                    if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
-                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
-                    }
-                    if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
-                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
-                    }
+//         // println!(
+//         //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
+//         //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
+//         // );
+//         // 控制状态下转发鼠标动作
+//         if BLOCK {
+//             // mousemoverel
+//             match ev[0] {
+//                 MOUSE_REL_MOVE => {
+//                     POS_IN_REMOTE_SCREEN[0] += ev[1];
+//                     POS_IN_REMOTE_SCREEN[1] += ev[2];
+//                     // 检测是否移动到屏幕边缘并解除控制
+//                     match SIDE {
+//                         ControlSide::LEFT => {
+//                             if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
+//                                 if !MOUSE_BUTTON_HOLD {
+//                                     listener_setBlock(0);
+//                                     BLOCK = false;
+//                                     POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+//                                 }
+//                             }
+//                         }
+//                         ControlSide::RIGHT => {
+//                             if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
+//                                 if !MOUSE_BUTTON_HOLD {
+//                                     listener_setBlock(0);
+//                                     BLOCK = false;
+//                                     POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+//                                 }
+//                             }
+//                         }
+//                         _ => {}
+//                     }
+//                     // 检测是否超过屏幕上下限
+//                     if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
+//                         POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+//                     }
+//                     if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
+//                         POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+//                     }
+//                     if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
+//                         POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
+//                     }
+//                     if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
+//                         POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+//                     }
 
-                    // 鼠标相对移动转换成绝对移动
-                    let x = POS_IN_REMOTE_SCREEN[0];
-                    let y = POS_IN_REMOTE_SCREEN[1];
-                    let bytes_to_send = [1, x, y];
-                    send_to_remote(bytes_to_send.as_slice());
-                }
-                MOUSE_MOVE => {}
-                MOUSE_DOWN => {
-                    MOUSE_BUTTON_HOLD = true;
-                    send_to_remote(ev);
-                }
-                MOUSE_UP => {
-                    MOUSE_BUTTON_HOLD = false;
-                    send_to_remote(ev);
-                }
-                _ => {
-                    send_to_remote(ev);
-                }
-            }
-        }
+//                     // 鼠标相对移动转换成绝对移动
+//                     let x = POS_IN_REMOTE_SCREEN[0];
+//                     let y = POS_IN_REMOTE_SCREEN[1];
+//                     let bytes_to_send = [1, x, y];
+//                     send_to_remote(bytes_to_send.as_slice());
+//                 }
+//                 MOUSE_MOVE => {}
+//                 MOUSE_DOWN => {
+//                     MOUSE_BUTTON_HOLD = true;
+//                     send_to_remote(ev);
+//                 }
+//                 MOUSE_UP => {
+//                     MOUSE_BUTTON_HOLD = false;
+//                     send_to_remote(ev);
+//                 }
+//                 _ => {
+//                     send_to_remote(ev);
+//                 }
+//             }
+//         }
 
-        // 非控制下检测鼠标移动，判断是否进入控制
-        if !BLOCK {
-            match ev[0] {
-                MOUSE_MOVE => {
-                    // mousemove
-                    if MOUSE_BUTTON_HOLD {
-                        return;
-                    }
-                    match SIDE {
-                        ControlSide::LEFT => {
-                            if ev[1] <= SELF_SCREEN_SIZE[0] {
-                                listener_setBlock(1);
-                                POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                                POS_IN_REMOTE_SCREEN[1] = ev[2];
-                                BLOCK = true;
-                            }
-                        }
-                        ControlSide::RIGHT => {
-                            if ev[1] >= SELF_SCREEN_SIZE[1] {
-                                listener_setBlock(1);
-                                POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                                POS_IN_REMOTE_SCREEN[1] = ev[2];
-                                BLOCK = true;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                MOUSE_DOWN => {
-                    MOUSE_BUTTON_HOLD = true;
-                }
-                MOUSE_UP => {
-                    MOUSE_BUTTON_HOLD = false;
-                }
-                _ => {}
-            }
-        }
-    }
-}
+//         // 非控制下检测鼠标移动，判断是否进入控制
+//         if !BLOCK {
+//             match ev[0] {
+//                 MOUSE_MOVE => {
+//                     // mousemove
+//                     if MOUSE_BUTTON_HOLD {
+//                         return;
+//                     }
+//                     match SIDE {
+//                         ControlSide::LEFT => {
+//                             if ev[1] <= SELF_SCREEN_SIZE[0] {
+//                                 listener_setBlock(1);
+//                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+//                                 POS_IN_REMOTE_SCREEN[1] = ev[2];
+//                                 BLOCK = true;
+//                             }
+//                         }
+//                         ControlSide::RIGHT => {
+//                             if ev[1] >= SELF_SCREEN_SIZE[1] {
+//                                 listener_setBlock(1);
+//                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+//                                 POS_IN_REMOTE_SCREEN[1] = ev[2];
+//                                 BLOCK = true;
+//                             }
+//                         }
+//                         _ => {}
+//                     }
+//                 }
+//                 MOUSE_DOWN => {
+//                     MOUSE_BUTTON_HOLD = true;
+//                 }
+//                 MOUSE_UP => {
+//                     MOUSE_BUTTON_HOLD = false;
+//                 }
+//                 _ => {}
+//             }
+//         }
+//     }
+// }
 
-extern "C" fn keyboard_handler(ev: *const c_long) {
-    unsafe {
-        if !IS_REMOTE_ALIVE {
-            return;
-        }
-        if BLOCK {
-            let ev = slice::from_raw_parts(ev, 7);
-            // debug!("keyboard: {:?}", ev);
-            send_to_remote(ev);
-        }
-    }
-}
+// extern "C" fn keyboard_handler(ev: *const c_int) {
+//     unsafe {
+//         if !IS_REMOTE_ALIVE {
+//             return;
+//         }
+//         if BLOCK {
+//             let ev = slice::from_raw_parts(ev, 7);
+//             // debug!("keyboard: {:?}", ev);
+//             send_to_remote(ev);
+//         }
+//     }
+// }
 
-extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
-    info!("unblock hotkey triggered");
-    unsafe {
-        if BLOCK {
-            BLOCK = false;
-            listener_setBlock(0);
-            POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-            let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
-            let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
-            mouse_move(center_x, center_y);
+// extern "C" fn hotkey_handler(hotkeys: *const [c_int; 7]) {
+//     info!("unblock hotkey triggered");
+//     unsafe {
+//         if BLOCK {
+//             BLOCK = false;
+//             listener_setBlock(0);
+//             POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+//             let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
+//             let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
+//             mouse_move(center_x, center_y);
 
-            // 通知受控端将按键释放
-            let hotkeys = slice::from_raw_parts(hotkeys, 5);
-            for key in hotkeys {
-                send_to_remote(key);
-            }
-        }
-    }
-}
+//             // 通知受控端将按键释放
+//             let hotkeys = slice::from_raw_parts(hotkeys, 5);
+//             for key in hotkeys {
+//                 send_to_remote(key);
+//             }
+//         }
+//     }
+// }
 
 pub fn init() {
-    thread::spawn(|| unsafe {
-        listener_init(mouse_handler, keyboard_handler, hotkey_handler);
-        listener_listen();
-    });
+    // thread::spawn(|| unsafe {
+    //     listener_init(mouse_handler, keyboard_handler, hotkey_handler);
+    //     listener_listen();
+    // });
 }
 
 pub fn release() {
@@ -229,7 +229,7 @@ pub fn release() {
             BLOCK = false;
             IS_REMOTE_ALIVE = false;
             // POS_IN_REMOTE_SCREEN[0] = 0;
-            listener_setBlock(0);
+            // listener_setBlock(0);
         }
     }
 }

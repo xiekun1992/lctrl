@@ -1,5 +1,5 @@
 use std::{
-    ffi::c_long,
+    ffi::{c_int, c_long},
     sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -17,10 +17,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug)]
 #[repr(C)]
 struct RECT {
-    left: c_long,
-    top: c_long,
-    right: c_long,
-    bottom: c_long,
+    left: c_int,
+    top: c_int,
+    right: c_int,
+    bottom: c_int,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

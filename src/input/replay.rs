@@ -9,6 +9,7 @@ use super::{
 
 #[link(name = "libcapture")]
 extern "C" {
+    fn mouse_init();
     fn mouse_move(x: c_int, y: c_int);
     fn mouse_wheel(direction: i32);
     fn mouse_down(button: i32);
@@ -89,6 +90,7 @@ pub fn init() {
     thread::spawn(|| {
         unsafe {
             keyboard_init();
+            mouse_init();
         }
         SERVER.recv(replay_input);
     });

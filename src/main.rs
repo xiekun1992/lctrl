@@ -21,18 +21,24 @@ fn main() -> Result<(), i32> {
         .init();
 
     info!("log module init");
-
-    let args: Vec<String> = env::args().collect();
-    if let Some(_) = args.iter().find(|arg| (**arg).eq("--run_as_service")) {
-        system_service::init();
-    } else if let Some(_) = args.iter().find(|arg| (**arg).eq("--run_as_app")) {
-        global::init();
-        discover::init();
-        input::init();
-        let _ = web_api::web_main();
-        system_service::stop();
-    } else {
-        system_service::bootstrap();
-    }
+    // if cfg!(target_os = "windows") {
+    //     let args: Vec<String> = env::args().collect();
+    //     if let Some(_) = args.iter().find(|arg| (**arg).eq("--run_as_service")) {
+    //         system_service::init();
+    //     } else if let Some(_) = args.iter().find(|arg| (**arg).eq("--run_as_app")) {
+    //         global::init();
+    //         discover::init();
+    //         input::init();
+    //         let _ = web_api::web_main();
+    //         system_service::stop();
+    //     } else {
+    //         system_service::bootstrap();
+    //     }
+    // } else {
+    global::init();
+    discover::init();
+    input::init();
+    let _ = web_api::web_main();
+    // }
     return Err(0);
 }

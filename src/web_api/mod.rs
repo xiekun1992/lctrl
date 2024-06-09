@@ -47,7 +47,7 @@ pub async fn web_main() -> std::io::Result<()> {
             .service(
                 web::scope("/api")
                     .service(launch::put)
-                    .service(clipboard::put)
+                    // .service(clipboard::put)
                     .service(file::post)
                     .service(device::get)
                     .service(remotes::get)
