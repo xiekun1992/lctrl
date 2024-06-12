@@ -1,4 +1,5 @@
 use gethostname::gethostname;
+use netdev::mac::MacAddr;
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 
@@ -64,15 +65,14 @@ pub fn get_interfaces() -> Vec<Interface> {
         }
 
         if avail {
-            ifs.push(Interface {
-                addr: interface.ipv4[0].addr,
-                netmask: interface.ipv4[0].netmask,
-                mac_addr: interface.mac_addr.unwrap().to_string(),
-                broadcast_addr: calc_broadcast_addr(
-                    interface.ipv4[0].addr,
-                    interface.ipv4[0].netmask,
-                ),
-            });
+            if let Some(ipv4) = interface.ipv4.get(0) {
+                ifs.push(Interface {
+                    addr: ipv4.addr,
+                    netmask: ipv4.netmask,
+                    mac_addr: interface.mac_addr.unwrap_or(MacAddr::zero()).to_string(),
+                    broadcast_addr: calc_broadcast_addr(ipv4.addr, ipv4.netmask),
+                });
+            }
         }
     }
 
