@@ -13,10 +13,10 @@ mod system_service;
 mod web_api;
 
 fn main() -> Result<(), i32> {
-    File::create("output.log").unwrap();
-    let log_file = Box::new(File::open("output.log").unwrap());
+    // File::create("output.log").unwrap();
+    // let log_file = Box::new(File::open("output.log").unwrap());
     Builder::new()
-        .target(env_logger::Target::Pipe(log_file))
+        // .target(env_logger::Target::Pipe(log_file))
         .filter(None, log::LevelFilter::Debug)
         .init();
 
