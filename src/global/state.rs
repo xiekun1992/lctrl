@@ -16,11 +16,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 #[repr(C)]
-struct RECT {
-    left: c_int,
-    top: c_int,
-    right: c_int,
-    bottom: c_int,
+pub struct RECT {
+    pub left: c_int,
+    pub top: c_int,
+    pub right: c_int,
+    pub bottom: c_int,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -56,7 +56,6 @@ impl Rect {
 #[link(name = "libcapture")]
 extern "C" {
     fn get_screen_size() -> RECT;
-    // fn get_screen_size(size: *const c_int);
 }
 
 lazy_static! {
@@ -74,17 +73,29 @@ pub struct State {
 
 impl State {
     fn new() -> State {
+        let db = DB::new();
         let mut screen_size = Rect::new();
         unsafe {
-            // get_screen_size(screen_size.as_mut_ptr());
             let s = get_screen_size();
+            let s = if s.left == s.right && s.top == s.bottom {
+                match db.get_current_device() {
+                    Some(size) => size,
+                    None => RECT {
+                        left: 0,
+                        top: 0,
+                        right: 800,
+                        bottom: 600,
+                    },
+                }
+            } else {
+                s
+            };
             info!("screen rect: {:?}", s);
             screen_size.left = s.left;
             screen_size.top = s.top;
             screen_size.right = s.right;
             screen_size.bottom = s.bottom;
         }
-        let db = DB::new();
         let (remote_peer, side) = db.get_remote_peer();
         let remotes = Vec::new();
         // if let Some(peer) = remote_peer.clone() {

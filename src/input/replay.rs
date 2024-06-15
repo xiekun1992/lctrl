@@ -2,6 +2,8 @@ use std::{ffi::c_int, slice, thread};
 
 // use log::debug;
 
+use crate::global::state::STATE;
+
 use super::{
     listener::{KEY_DOWN, KEY_UP, MOUSE_DOWN, MOUSE_MOVE, MOUSE_REL_MOVE, MOUSE_UP, MOUSE_WHEEL},
     SERVER,
@@ -9,7 +11,7 @@ use super::{
 
 #[link(name = "libcapture")]
 extern "C" {
-    fn mouse_init();
+    fn mouse_init(left: c_int, top: c_int, right: c_int, bottom: c_int);
     fn mouse_move(x: c_int, y: c_int);
     fn mouse_wheel(direction: i32);
     fn mouse_down(button: i32);
@@ -88,9 +90,11 @@ fn replay_input(bytes: &[u32]) {
 
 pub fn init() {
     thread::spawn(|| {
+        let rect = { &STATE.lock().unwrap().screen_size.clone() };
+        println!("{:?}", rect);
         unsafe {
             keyboard_init();
-            mouse_init();
+            mouse_init(rect.left, rect.top, rect.right, rect.bottom);
         }
         SERVER.recv(replay_input);
     });

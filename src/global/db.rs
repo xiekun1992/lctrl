@@ -2,7 +2,7 @@ use rusqlite::Connection;
 
 use crate::{global::device::RemoteDevice, input::listener::ControlSide};
 
-use super::state::Rect;
+use super::state::{Rect, RECT};
 
 pub struct DB {
     conn: Connection,
@@ -27,6 +27,19 @@ impl DB {
             (),
         )
         .unwrap();
+
+        conn.execute(
+            "create table if not exists current_device (
+                id integer primary key,
+                screen_size_left integer, 
+                screen_size_right integer, 
+                screen_size_top integer, 
+                screen_size_bottom integer
+            )",
+            (),
+        )
+        .unwrap();
+
         DB { conn }
     }
 
@@ -123,6 +136,64 @@ impl DB {
 
     pub fn delete_remote_peer(&self) {
         self.conn.execute("delete from remote_peer", ()).unwrap();
+    }
+
+    pub fn set_current_device(&self, screen_size: &RECT) {
+        if screen_size.left != screen_size.right && screen_size.top != screen_size.bottom {
+            self.delete_current_device();
+            self.conn
+                .execute(
+                    r#"
+                        insert into current_device(
+                            screen_size_left, 
+                            screen_size_right, 
+                            screen_size_top, 
+                            screen_size_bottom
+                        ) values (?1, ?2, ?3, ?4)"#,
+                    (
+                        &screen_size.left,
+                        &screen_size.right,
+                        &screen_size.top,
+                        &screen_size.bottom,
+                    ),
+                )
+                .unwrap();
+        }
+    }
+    pub fn get_current_device(&self) -> Option<RECT> {
+        match self.conn.prepare(
+            r#"select 
+                    screen_size_left, 
+                    screen_size_right, 
+                    screen_size_top, 
+                    screen_size_bottom
+                from current_device"#,
+        ) {
+            Ok(mut stmt) => {
+                let mut iter = stmt
+                    .query_map([], |row| {
+                        // println!("{:?}", row);
+                        Ok(RECT {
+                            left: row.get(0).unwrap(),
+                            right: row.get(1).unwrap(),
+                            top: row.get(2).unwrap(),
+                            bottom: row.get(3).unwrap(),
+                        })
+                    })
+                    .unwrap();
+                match iter.next() {
+                    Some(res) => match res {
+                        Ok(r) => Some(r),
+                        Err(_e) => None,
+                    },
+                    _ => None,
+                }
+            }
+            Err(_e) => None,
+        }
+    }
+    pub fn delete_current_device(&self) {
+        self.conn.execute("delete from current_device", ()).unwrap();
     }
 }
 
