@@ -39,7 +39,7 @@ pub fn init() {
                 let mut remotes = state.remotes.try_lock().unwrap();
                 remotes.retain(|item| {
                     // println!("{}, {}", timestamp, item.alive_timestamp);
-                    (timestamp - item.alive_timestamp) < 3u64
+                    timestamp.wrapping_sub(item.alive_timestamp) < 3u64
                     // match state.get_remote_peer() {
                     // Some(peer) => {
                     //     if item.ip.ne(&peer.ip) {

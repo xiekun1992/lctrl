@@ -48,20 +48,21 @@ impl UDPServer {
         loop {
             let mut remote_infos = Vec::new();
             {
-                let state = STATE.lock().unwrap();
-                let dev = &state.cur_device;
-                for interface in &dev.ifs {
-                    let addr = format!("{}:{}", interface.broadcast_addr, self.port);
-                    let remote = RemoteDevice {
-                        hostname: dev.hostname.clone(),
-                        ip: interface.addr.to_string(),
-                        mac_addr: interface.mac_addr.clone(),
-                        screen_size: state.screen_size.clone(),
-                        netmask: interface.netmask.to_string(),
-                        alive_timestamp: 0,
+                if let Ok(state) = STATE.lock() {
+                    let dev = &state.cur_device;
+                    for interface in &dev.ifs {
+                        let addr = format!("{}:{}", interface.broadcast_addr, self.port);
+                        let remote = RemoteDevice {
+                            hostname: dev.hostname.clone(),
+                            ip: interface.addr.to_string(),
+                            mac_addr: interface.mac_addr.clone(),
+                            screen_size: state.screen_size.clone(),
+                            netmask: interface.netmask.to_string(),
+                            alive_timestamp: 0,
+                        }
+                        .to_json();
+                        remote_infos.push((remote, addr));
                     }
-                    .to_json();
-                    remote_infos.push((remote, addr));
                 }
             }
             for (remote, addr) in &remote_infos {

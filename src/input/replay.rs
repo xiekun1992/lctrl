@@ -90,11 +90,16 @@ fn replay_input(bytes: &[u32]) {
 
 pub fn init() {
     thread::spawn(|| {
-        let rect = { &STATE.lock().unwrap().screen_size.clone() };
-        println!("{:?}", rect);
-        unsafe {
-            keyboard_init();
-            mouse_init(rect.left, rect.top, rect.right, rect.bottom);
+        match &STATE.lock() {
+            Ok(state) => {
+                let rect = state.screen_size.clone();
+                println!("{:?}", rect);
+                unsafe {
+                    keyboard_init();
+                    mouse_init(rect.left, rect.top, rect.right, rect.bottom);
+                }
+            }
+            _ => {}
         }
         SERVER.recv(replay_input);
     });
