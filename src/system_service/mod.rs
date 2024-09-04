@@ -76,9 +76,8 @@ pub fn bootstrap() {
         if is_run_as_admin() == 0 {
             run_as_admin();
         } else {
-            if cfg!(target_os = "windows") {
-                add_windows_firewall_rule();
-            }
+            add_windows_firewall_rule();
+
             create_service();
             start_service();
         }
