@@ -2,13 +2,8 @@ use std::env;
 
 // use chrono::Local;
 use env_logger::Builder;
-use global::{
-    db,
-    state::{Rect, RECT},
-};
-use log::info;
-use std::fs::File;
-// use std::io::Write;
+use global::{db, state::RECT};
+use log::{error, info};
 
 mod discover;
 mod global;
@@ -22,12 +17,7 @@ extern "C" {
 }
 
 fn main() -> Result<(), i32> {
-    // File::create("output.log").unwrap();
-    // let log_file = Box::new(File::open("output.log").unwrap());
-    Builder::new()
-        // .target(env_logger::Target::Pipe(log_file))
-        .filter(None, log::LevelFilter::Debug)
-        .init();
+    Builder::new().filter(None, log::LevelFilter::Debug).init();
 
     info!("log module init");
     let args: Vec<String> = env::args().collect();
@@ -48,15 +38,17 @@ fn main() -> Result<(), i32> {
     #[cfg(target_os = "linux")]
     if let Some(_) = args.iter().find(|arg| (**arg).eq("--get-screen-size")) {
         let rect = unsafe { get_screen_size() };
-        println!("{:?}", rect);
+        info!("{:?}", rect);
         let conn = db::DB::new();
-        // println!("{:?}", conn.get_current_device());
         conn.set_current_device(&rect);
-    } else {
+        // println!("{:?}", conn.get_current_device());
+    } else if let Some(_) = args.iter().find(|arg| (**arg).eq("--run_as_app")) {
         global::init();
         discover::init();
         input::init();
         let _ = web_api::web_main();
+    } else {
+        error!("please run ./run.sh in current directory");
     }
     return Err(0);
 }
