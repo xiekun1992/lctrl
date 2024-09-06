@@ -19,4 +19,6 @@ WantedBy=graphical.target
 " | sudo tee /etc/systemd/system/lctrl.service > /dev/null
 
 sudo systemctl daemon-reload
+sudo systemctl enable lctrl
 sudo systemctl restart lctrl
+sudo systemctl status lctrl
