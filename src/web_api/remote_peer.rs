@@ -2,7 +2,7 @@ use crate::global::device::RemoteDevice;
 use crate::global::state::STATE;
 use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
 use actix_web::{delete, get, put, web, HttpResponse, Responder};
-use log::error;
+use tracing::error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]

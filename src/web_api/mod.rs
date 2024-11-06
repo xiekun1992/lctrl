@@ -12,7 +12,7 @@ use actix_cors::Cors;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartFormConfig};
 use actix_web::{http, middleware, App, HttpServer};
 use actix_web::{web, HttpResponse};
-use log::info;
+use tracing::info;
 
 #[actix_web::main]
 pub async fn web_main() -> std::io::Result<()> {

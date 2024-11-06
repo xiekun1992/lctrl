@@ -1,5 +1,5 @@
 // use actix_web::{put, web, HttpResponse, Responder};
-// use log::info;
+// use tracing::info;
 
 // use crate::input::clipboard::{write_text_to_clipboard, ClipboardBody};
 

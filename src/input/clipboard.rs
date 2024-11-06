@@ -6,13 +6,13 @@ use std::{
     time::Duration,
 };
 
-use log::{debug, error, info};
+use tracing::{debug, error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::global::state::STATE;
 
 type CClipboardHandler = extern "C" fn();
-#[link(name = "libcapture")]
+// #[link(name = "libcapture")]
 extern "C" {
     fn clipboard_init();
     fn clipboard_dispose();

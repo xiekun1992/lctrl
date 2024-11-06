@@ -1,6 +1,6 @@
 use std::{ffi::c_int, slice, thread};
 
-// use log::debug;
+use tracing::debug;
 
 use crate::global::state::STATE;
 
@@ -9,7 +9,7 @@ use super::{
     SERVER,
 };
 
-#[link(name = "libcapture")]
+// #[link(name = "libcapture")]
 extern "C" {
     fn mouse_init(left: c_int, top: c_int, right: c_int, bottom: c_int);
     fn mouse_move(x: c_int, y: c_int);
@@ -21,6 +21,8 @@ extern "C" {
     fn keydown(scancodes: *const c_int, len: c_int) -> c_int;
     fn keyup(scancodes: *const c_int, len: c_int) -> c_int;
 }
+
+static mut KEY_PRESSED: Vec<i32> = vec![];
 
 fn replay_input(bytes: &[u32]) {
     unsafe {
@@ -48,6 +50,7 @@ fn replay_input(bytes: &[u32]) {
                 mouse_up(bytes[3]);
             }
             KEY_DOWN => {
+                debug!("{:?}", bytes);
                 // keydown
                 let scancode = bytes[2];
                 let ctrl_key = bytes[3];
@@ -60,6 +63,8 @@ fn replay_input(bytes: &[u32]) {
                 scancodes.push(alt_key);
                 scancodes.push(shift_key);
                 scancodes.push(meta_key);
+
+                KEY_PRESSED.push(scancode);
                 keydown(scancodes.as_ptr(), scancodes.len() as i32);
             }
             KEY_UP => {
@@ -75,6 +80,9 @@ fn replay_input(bytes: &[u32]) {
                 scancodes.push(alt_key);
                 scancodes.push(shift_key);
                 scancodes.push(meta_key);
+
+                KEY_PRESSED.retain(|key_scancode| scancode != *key_scancode);
+                debug!("{:?}", KEY_PRESSED);
                 keyup(scancodes.as_ptr(), scancodes.len() as i32);
             }
             MOUSE_REL_MOVE => {

@@ -1,9 +1,10 @@
 use std::env;
 
 // use chrono::Local;
-use env_logger::Builder;
+// use env_logger::Builder;
 use global::{db, state::RECT};
-use log::{error, info};
+use tracing::Level;
+use tracing::{error, info};
 
 mod discover;
 mod global;
@@ -11,13 +12,26 @@ mod input;
 mod system_service;
 mod web_api;
 
-#[link(name = "libcapture")]
+// #[link(name = "libcapture")]
 extern "C" {
     fn get_screen_size() -> RECT;
 }
 
 fn main() -> Result<(), i32> {
-    Builder::new().filter(None, log::LevelFilter::Debug).init();
+    let file_appender = tracing_appender::rolling::daily("./", "lctrl");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    // 将日志文件添加到 tracing_subscriber 中
+
+    // let subscriber = tracing_subscriber::registry().fmt(f).
+    // tracing::subscriber::set_global_default(subscriber).unwrap();
+    tracing_subscriber::fmt()
+        .with_target(true)
+        // .with_ansi(true)
+        .with_thread_ids(true)
+        .with_thread_names(true)
+        // .with_max_level(Level::TRACE)
+        .with_writer(non_blocking)
+        .init();
 
     info!("log module init");
     let args: Vec<String> = env::args().collect();

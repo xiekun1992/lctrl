@@ -11,8 +11,8 @@ use super::{
     device::{DeviceInfo, RemoteDevice},
 };
 use lazy_static::lazy_static;
-use log::info;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -53,7 +53,7 @@ impl Rect {
     }
 }
 
-#[link(name = "libcapture")]
+// #[link(name = "libcapture")]
 extern "C" {
     fn get_screen_size() -> RECT;
 }

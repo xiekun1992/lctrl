@@ -1,8 +1,8 @@
 use std::{env, ffi::c_int, process::Command};
 
-use log::{error, info};
+use tracing::{error, info};
 
-#[link(name = "libcapture")]
+// #[link(name = "libcapture")]
 extern "C" {
     fn register_service() -> c_int;
     fn create_service();

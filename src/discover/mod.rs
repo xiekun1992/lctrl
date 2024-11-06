@@ -1,6 +1,6 @@
 pub mod udp_server;
 
-use log::{debug, error, info};
+use tracing::{debug, error, info};
 use std::{
     sync::Arc,
     thread,

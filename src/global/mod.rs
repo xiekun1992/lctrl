@@ -1,6 +1,6 @@
 use std::{thread, time::Duration};
 
-use log::info;
+use tracing::info;
 
 use self::{device::get_interfaces, state::STATE};
 

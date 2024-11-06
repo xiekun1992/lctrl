@@ -4,7 +4,7 @@ use std::{
 };
 
 use actix_web::{post, web, HttpResponse, Responder};
-use log::{debug, info};
+use tracing::{debug, info};
 
 use crate::{
     global::{device::calc_broadcast_addr, state::STATE},

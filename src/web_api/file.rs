@@ -2,7 +2,7 @@ use std::{fs, io::Read};
 
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{post, HttpResponse, Responder};
-use log::info;
+use tracing::info;
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
