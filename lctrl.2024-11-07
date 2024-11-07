@@ -1,0 +1,14 @@
+[2m2024-11-07T13:35:43.438632Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust[0m[2m:[0m log module init
+[2m2024-11-07T13:35:46.045658Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust[0m[2m:[0m log module init
+[2m2024-11-07T13:35:46.045869Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust::system_service[0m[2m:[0m netsh advfirewall firewall delete rule name="lctrl_rust.exe"
+[2m2024-11-07T13:35:46.472217Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust::system_service[0m[2m:[0m Command executed successfully:
+[2m2024-11-07T13:35:46.472272Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust::system_service[0m[2m:[0m 
+��ɾ�� 1 ����
+ȷ����
+
+
+[2m2024-11-07T13:35:46.472286Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust::system_service[0m[2m:[0m netsh advfirewall firewall add rule name="lctrl_rust.exe" dir=in action=allow program=D:\rust_workspaces\lctrl_rust\target\debug\lctrl_rust.exe enable=yes
+[2m2024-11-07T13:35:46.879707Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust::system_service[0m[2m:[0m Command executed successfully:
+[2m2024-11-07T13:35:46.879742Z[0m [32m INFO[0m main ThreadId(01) [2mlctrl_rust::system_service[0m[2m:[0m ȷ����
+
+
