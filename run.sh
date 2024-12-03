@@ -1,7 +1,8 @@
 #!/bin/bash
 # export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 echo $(pwd)
-LD_LIBRARY_PATH=$(pwd) ./lctrl_rust --get-screen-size
+./lctrl_rust --get-screen-size
+# LD_LIBRARY_PATH=$(pwd) ./lctrl_rust --get-screen-size
 
 echo -e "[Unit]
 Description=Lctrl
@@ -11,7 +12,8 @@ Requires=display-manager.service
 [Service]
 Type=simple
 ExecStart=$(pwd)/lctrl_rust --run_as_app
-Environment=\"XDG_RUNTIME_DIR=/tmp\" \"LD_LIBRARY_PATH=$(pwd)\"
+Environment=\"XDG_RUNTIME_DIR=/tmp\"
+#Environment=\"XDG_RUNTIME_DIR=/tmp\" \"LD_LIBRARY_PATH=$(pwd)\"
 WorkingDirectory=$(pwd)
 
 [Install]

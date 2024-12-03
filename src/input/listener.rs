@@ -229,6 +229,7 @@ pub fn release() {
             BLOCK = false;
             IS_REMOTE_ALIVE = false;
             POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+            #[cfg(target_os = "windows")]
             listener_setBlock(0);
         }
     }
