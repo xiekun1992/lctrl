@@ -1,0 +1,13 @@
+[Unit]
+Description=Lctrl
+After=display-manager.service
+Requires=display-manager.service
+
+[Service]
+Type=simple
+ExecStart=/opt/lctrl/lctrl_rust --run_as_app
+Environment=\"XDG_RUNTIME_DIR=/tmp\"
+WorkingDirectory=/opt/lctrl/
+
+[Install]
+WantedBy=graphical.target

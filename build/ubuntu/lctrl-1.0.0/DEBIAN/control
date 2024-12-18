@@ -1,0 +1,10 @@
+Package: lctrl
+Version: 1.0.0
+Architecture: amd64
+Maintainer: xkfront <xkfront@outlook.com>
+Installed-Size: 1024
+Depends: libc6 (>= 2.28)
+Section: utils
+Priority: optional
+Description: My custom application
+ This is a description of the package. You can write multiple lines.
