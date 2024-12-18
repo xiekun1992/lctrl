@@ -1,0 +1,1 @@
+dpkg-deb --build ./lctrl-1.0.0

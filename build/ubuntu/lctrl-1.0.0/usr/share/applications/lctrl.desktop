@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=lctrl
+GenericName=lctrl
+Comment=a LAN control utility
+Exec=/opt/lctrl/lctrl_rust --gui
+Terminal=false
+MimeType=text/plain
+Icon=lctrl
+Categories=Utility;
+StartupNotify=true
