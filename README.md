@@ -32,3 +32,8 @@
 1. - [ ] 鼠标控制
 2. - [ ] 键盘控制
 3. - [ ] 剪切板同步
+
+### 项目构建
+
+#### Linux Ubuntu
+- `sudo apt install libssl-dev libwayland-dev`
