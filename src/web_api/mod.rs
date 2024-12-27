@@ -1,8 +1,10 @@
 mod clipboard;
 mod device;
+mod dto;
 mod file;
 mod frontend;
 mod launch;
+mod manual_peer;
 mod remote_peer;
 mod remotes;
 // use std::{fs, vec};
@@ -10,6 +12,7 @@ mod remotes;
 use actix_cors::Cors;
 // use actix_files::Files;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartFormConfig};
+use actix_web::web::service;
 use actix_web::{http, middleware, App, HttpServer};
 use actix_web::{web, HttpResponse};
 use tracing::info;
@@ -50,12 +53,14 @@ pub async fn web_main() -> std::io::Result<()> {
                     // .service(clipboard::put)
                     .service(file::post)
                     .service(device::get)
+                    .service(device::get_as_remote)
                     .service(remotes::get)
                     .service(remotes::post)
                     .service(remotes::delete)
                     .service(remote_peer::get)
                     .service(remote_peer::put)
-                    .service(remote_peer::delete),
+                    .service(remote_peer::delete)
+                    .service(manual_peer::put),
             )
             // .service(frontend::get)
             .service(frontend::get_resource)

@@ -1,3 +1,5 @@
+use crate::global::{device::RemoteDevice, state::STATE};
+use crate::web_api::dto::RemoteDevices;
 use actix_web::{
     delete, get, post,
     web::{Json, Query},
@@ -5,13 +7,16 @@ use actix_web::{
 };
 use serde::Deserialize;
 
-use crate::global::{device::RemoteDevice, state::STATE};
-
 #[get("/remotes")]
 pub async fn get() -> impl Responder {
-    let remotes = STATE.lock().unwrap().get_remote();
+    match STATE.try_lock() {
+        Ok(state) => HttpResponse::Ok().json(RemoteDevices {
+            remotes: state.get_remote(),
+            manual_remotes: state.get_manual_remote(),
+        }),
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
+    }
     // web::Json(res)
-    HttpResponse::Ok().json(remotes)
 }
 
 #[post("/remotes")]

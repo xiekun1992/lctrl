@@ -64,6 +64,7 @@ lazy_static! {
 
 pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
+    pub manual_remotes: Mutex<Vec<RemoteDevice>>,
     pub cur_device: DeviceInfo,
     pub remote_peer: Option<RemoteDevice>,
     pub screen_size: Rect,
@@ -98,11 +99,13 @@ impl State {
         }
         let (remote_peer, side) = db.get_remote_peer();
         let remotes = Vec::new();
+        let manual_remotes = Vec::new();
         // if let Some(peer) = remote_peer.clone() {
         //     remotes.push(peer);
         // }
         State {
             remotes: Mutex::new(remotes),
+            manual_remotes: Mutex::new(manual_remotes),
             cur_device: DeviceInfo::new(),
             screen_size,
             remote_peer,
@@ -131,25 +134,50 @@ impl State {
     pub fn get_remote(&self) -> Vec<RemoteDevice> {
         self.remotes.lock().unwrap().clone()
     }
+    pub fn get_manual_remote(&self) -> Vec<RemoteDevice> {
+        self.manual_remotes.lock().unwrap().clone()
+    }
+
+    pub fn add_manual_remote(&mut self, manual_remote: RemoteDevice) {
+        match self.manual_remotes.try_lock() {
+            Ok(mut r) => {
+                let found = r.iter().find(|item| item.ip.eq(&manual_remote.ip));
+                if found.is_none() {
+                    r.push(manual_remote);
+                }
+            }
+            Err(e) => {}
+        }
+    }
 
     pub fn add_remote(&mut self, mut remote: RemoteDevice) {
-        {
-            let mut remotes = self.remotes.lock().unwrap();
-            let timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
-                Ok(duration) => duration.as_secs(),
-                Err(_) => {
-                    println!("SystemTime before UNIX EPOCH!");
-                    0
+        match self.manual_remotes.lock() {
+            Ok(remotes) => {
+                if remotes.iter().find(|item| item.ip.eq(&remote.ip)).is_some() {
+                    return;
                 }
-            };
-            let found = remotes.iter_mut().find(|item| item.ip.eq(&remote.ip));
-            if found.is_none() {
-                remote.alive_timestamp = timestamp;
-                remotes.push(remote.clone());
-            } else {
-                found.unwrap().alive_timestamp = timestamp;
             }
-            // println!("{:?}, {:?}", remotes, self.remote_peer);
+            Err(_e) => {}
+        }
+        match self.remotes.lock() {
+            Ok(mut remotes) => {
+                let timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                    Ok(duration) => duration.as_secs(),
+                    Err(_) => {
+                        println!("SystemTime before UNIX EPOCH!");
+                        0
+                    }
+                };
+                let found = remotes.iter_mut().find(|item| item.ip.eq(&remote.ip));
+                if found.is_none() {
+                    remote.alive_timestamp = timestamp;
+                    remotes.push(remote.clone());
+                } else {
+                    found.unwrap().alive_timestamp = timestamp;
+                }
+                // println!("{:?}, {:?}", remotes, self.remote_peer);
+            }
+            Err(_e) => {}
         }
         match self.remote_peer.clone() {
             Some(rdev) => {
@@ -171,13 +199,18 @@ impl State {
     }
 
     pub fn find_remote_by_ip(&self, ip: &str) -> Option<RemoteDevice> {
-        let remotes = self.remotes.lock().unwrap();
-        for r in remotes.clone().into_iter() {
-            if r.ip.as_str() == ip {
-                return Some(r.clone());
-            }
+        let res = match self.remotes.lock() {
+            Ok(remotes) => remotes.iter().find(|item| item.ip.as_str().eq(ip)).cloned(),
+            Err(_e) => None,
+        };
+        if res.is_some() {
+            return res;
         }
-        None
+        let res = match self.manual_remotes.lock() {
+            Ok(remotes) => remotes.iter().find(|item| item.ip.as_str().eq(ip)).cloned(),
+            Err(_e) => None,
+        };
+        return res;
     }
 }
 

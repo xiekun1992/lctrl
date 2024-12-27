@@ -2,8 +2,8 @@ use crate::global::device::RemoteDevice;
 use crate::global::state::STATE;
 use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
 use actix_web::{delete, get, put, web, HttpResponse, Responder};
-use tracing::error;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 #[derive(Deserialize)]
 pub struct RemoteSetting {
@@ -13,17 +13,21 @@ pub struct RemoteSetting {
 
 #[put("/remote_peer")]
 pub async fn put(setting: web::Query<RemoteSetting>) -> impl Responder {
-    let mut state = STATE.lock().unwrap();
-    let remote = state.find_remote_by_ip(&setting.ip.as_str());
-    if let Some(rdev) = remote.clone() {
-        unsafe {
-            REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_arr();
-            SELF_SCREEN_SIZE = state.screen_size.clone().to_arr();
-            SIDE = setting.side;
-            state.set_remote_peer(remote, &SIDE);
+    match STATE.try_lock() {
+        Ok(mut state) => {
+            let remote = state.find_remote_by_ip(&setting.ip.as_str());
+            if let Some(rdev) = remote.clone() {
+                unsafe {
+                    REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_arr();
+                    SELF_SCREEN_SIZE = state.screen_size.clone().to_arr();
+                    SIDE = setting.side;
+                    state.set_remote_peer(remote, &SIDE.clone());
+                }
+            }
+            HttpResponse::Ok().json(())
         }
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
     }
-    HttpResponse::Ok().json(())
 }
 
 #[delete("/remote_peer")]
