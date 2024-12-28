@@ -1,11 +1,11 @@
 pub mod udp_server;
 
-use tracing::{debug, error, info};
 use std::{
     sync::Arc,
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
+use tracing::{debug, error, info};
 use udp_server::UDPServer;
 
 use crate::global::state::STATE;
@@ -36,31 +36,49 @@ pub fn init() {
 
         match STATE.lock() {
             Ok(state) => {
-                let mut remotes = state.remotes.try_lock().unwrap();
-                remotes.retain(|item| {
-                    // println!("{}, {}", timestamp, item.alive_timestamp);
-                    timestamp.wrapping_sub(item.alive_timestamp) < 3u64
-                    // match state.get_remote_peer() {
-                    // Some(peer) => {
-                    //     if item.ip.ne(&peer.ip) {
-                    //         (timestamp - item.alive_timestamp) < 3u64
-                    //     } else {
-                    //         true
-                    //     }
-                    // }
-                    // None => (timestamp - item.alive_timestamp) < 3u64,
-                    // }
-                });
-                // debug!("{:?} {:?}", remotes, state.remote_peer);
-                match state.remote_peer.clone() {
-                    Some(rdev) => {
-                        if remotes.iter().find(|item| item.ip.eq(&rdev.ip)).is_none() {
-                            crate::input::listener::release();
-                        } else {
-                            crate::input::listener::keepalive();
+                let peer_in_manual_remotes =
+                    if let Ok(manual_remotes) = state.manual_remotes.try_lock() {
+                        match state.remote_peer {
+                            Some(ref rdev) => {
+                                if manual_remotes
+                                    .iter()
+                                    .find(|item| item.ip.eq(&rdev.ip))
+                                    .is_some()
+                                {
+                                    Some(())
+                                } else {
+                                    None
+                                }
+                            }
+                            None => None,
                         }
+                    } else {
+                        None
+                    };
+
+                let peer_in_remotes = if let Ok(mut remotes) = state.remotes.try_lock() {
+                    remotes.retain(|item| {
+                        // println!("{}, {}", timestamp, item.alive_timestamp);
+                        timestamp.wrapping_sub(item.alive_timestamp) < 3u64
+                    });
+                    match state.remote_peer {
+                        Some(ref rdev) => {
+                            if remotes.iter().find(|item| item.ip.eq(&rdev.ip)).is_some() {
+                                Some(())
+                            } else {
+                                None
+                            }
+                        }
+                        None => None,
                     }
-                    None => {}
+                } else {
+                    None
+                };
+
+                if peer_in_manual_remotes.is_none() && peer_in_remotes.is_none() {
+                    crate::input::listener::release();
+                } else {
+                    crate::input::listener::keepalive();
                 }
             }
             Err(err) => {
