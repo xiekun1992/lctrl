@@ -143,10 +143,13 @@ impl State {
             Ok(mut r) => {
                 let found = r.iter().find(|item| item.ip.eq(&manual_remote.ip));
                 if found.is_none() {
+                    if let Ok(mut remotes) = self.remotes.try_lock() {
+                        remotes.retain(|item| item.ip.ne(&manual_remote.ip));
+                    }
                     r.push(manual_remote);
                 }
             }
-            Err(e) => {}
+            Err(_e) => {}
         }
     }
 
