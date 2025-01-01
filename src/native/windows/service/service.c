@@ -59,6 +59,7 @@ DLL_EXPORT void connectPipe()
             // if (strcmp(buffer, "app:close") == 0)
             // {
             // }
+            CloseHandle(hPipe);
             ExitProcess(0);
             // MessageBox(
             //     NULL,
@@ -72,7 +73,6 @@ DLL_EXPORT void connectPipe()
         }
         Sleep(1000);
     }
-    CloseHandle(hPipe);
 }
 
 DLL_EXPORT VOID delete_service()
