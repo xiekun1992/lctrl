@@ -2,6 +2,7 @@
 
 SERVICE_STATUS_HANDLE service_status_handle = NULL;
 SERVICE_STATUS service_status = {0};
+HANDLE hPipe;
 
 DWORD get_process_id_by_name(const wchar_t *process_name)
 {
@@ -34,6 +35,44 @@ DWORD get_process_id_by_name(const wchar_t *process_name)
 
     CloseHandle(hSnapshot);
     return processId;
+}
+
+DLL_EXPORT void connectPipe()
+{
+    HANDLE hPipe;
+    DWORD dwWritten;
+    hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+    if (hPipe == INVALID_HANDLE_VALUE)
+    {
+        // std::cerr << "Failed to open pipe. Error: " << GetLastError() << std::endl;
+        return;
+    }
+    while (true)
+    {
+        char buffer[512];
+        DWORD dwRead;
+        if (ReadFile(hPipe, buffer, sizeof(buffer), &dwRead, NULL))
+        {
+            // printf("Received from pipe: %s\n", buffer);
+            // std::cout << "Received from service: " << buffer << std::endl;
+            // if (strcmp(buffer, "app:close") == 0)
+            // {
+            // }
+            ExitProcess(0);
+            // MessageBox(
+            //     NULL,
+            //     (LPCWSTR)L"Resource not available\nDo you want to try again?",
+            //     (LPCWSTR)L"Account Details",
+            //     MB_ICONWARNING | MB_CANCELTRYCONTINUE | MB_DEFBUTTON2);
+        }
+        else
+        {
+            // printf("read failed from pipe\n");
+        }
+        Sleep(1000);
+    }
+    CloseHandle(hPipe);
 }
 
 DLL_EXPORT VOID delete_service()
@@ -143,6 +182,16 @@ DLL_EXPORT VOID start_service()
 
 VOID run()
 {
+    // create named pipe
+    hPipe = CreateNamedPipe(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+                            PIPE_UNLIMITED_INSTANCES, 512, 512, 0, NULL);
+
+    if (hPipe == INVALID_HANDLE_VALUE)
+    {
+        // std::cerr << "Failed to create pipe server. Error: " << GetLastError() << std::endl;
+        return;
+    }
+
     wchar_t path[MAX_PATH];
     wchar_t *appname = NULL;
     if (GetModuleFileName(NULL, path, MAX_PATH) != 0)
@@ -204,22 +253,31 @@ VOID run()
             CloseHandle(token);
             CloseHandle(handle);
         }
-    }
 
-    while (service_status.dwCurrentState != SERVICE_STOPPED)
-    {
-        Sleep(1000);
-    }
-
-    if (appname != NULL)
-    {
-        DWORD app_pid = get_process_id_by_name(appname);
-        HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, app_pid);
-        if (hProcess > 0)
+        BOOL isConnected = ConnectNamedPipe(hPipe, NULL);
+        if (!isConnected)
         {
-            TerminateProcess(hProcess, 0);
+            // std::cerr << "Failed to connect pipe. Error: " << GetLastError() << std::endl;
+            CloseHandle(hPipe);
+            return;
+        }
+
+        while (service_status.dwCurrentState != SERVICE_STOPPED)
+        {
+            Sleep(1000);
         }
     }
+
+    // if (appname != NULL)
+    // {
+    //     DWORD app_pid = get_process_id_by_name(appname);
+    //     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, app_pid);
+    //     if (hProcess > 0)
+    //     {
+    //         TerminateProcess(hProcess, 0);
+    //     }
+    // }
+
     // service_status.dwWin32ExitCode = 0;
     // service_status.dwCurrentState = SERVICE_STOPPED;
     // SetServiceStatus(service_status_handle, &service_status);
@@ -233,6 +291,13 @@ VOID WINAPI service_handler(DWORD dwControl)
     {
         service_status.dwCurrentState = SERVICE_STOP_PENDING;
         SetServiceStatus(service_status_handle, &service_status);
+
+        DWORD dwWritten;
+        const char *response = "app:close";
+        WriteFile(hPipe, response, strlen(response), &dwWritten, NULL);
+
+        Sleep(2000);
+        CloseHandle(hPipe);
 
         service_status.dwWin32ExitCode = 0;
         service_status.dwCurrentState = SERVICE_STOPPED;

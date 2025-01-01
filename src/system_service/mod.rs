@@ -1,4 +1,4 @@
-use std::{env, ffi::c_int, process::Command};
+use std::{env, ffi::c_int, process::Command, thread};
 
 use tracing::{error, info};
 
@@ -11,6 +11,9 @@ extern "C" {
 
     fn is_run_as_admin() -> c_int;
     fn run_as_admin();
+
+    #[cfg(target_os = "windows")]
+    fn connectPipe();
 }
 
 #[cfg(target_os = "windows")]
@@ -88,4 +91,10 @@ pub fn stop() {
     unsafe {
         stop_service();
     }
+}
+
+pub fn listen_service_close() {
+    thread::spawn(|| unsafe {
+        connectPipe();
+    });
 }

@@ -14,6 +14,7 @@ mod web_api;
 
 // #[link(name = "libcapture")]
 extern "C" {
+    #[cfg(target_os = "linux")]
     fn get_screen_size() -> RECT;
 }
 
@@ -43,6 +44,7 @@ fn main() -> Result<(), i32> {
         global::init();
         discover::init();
         input::init();
+        system_service::listen_service_close();
         let _ = web_api::web_main();
         system_service::stop();
     } else {
