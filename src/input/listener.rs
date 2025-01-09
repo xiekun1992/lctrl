@@ -41,6 +41,7 @@ pub static mut REMOTE_SCREEN_SIZE: [i32; 4] = [0, 0, 0, 0]; // left, right, top,
 pub static mut SELF_SCREEN_SIZE: [i32; 4] = [0, 0, 0, 0]; // left, right, top, bottom
 pub static mut SIDE: ControlSide = ControlSide::NONE;
 static mut POS_IN_REMOTE_SCREEN: [i32; 2] = [0, 0];
+static mut POS_IN_REMOTE_SCREEN_FL: [f32; 2] = [0f32, 0f32];
 static mut BLOCK: bool = false;
 static mut MOUSE_BUTTON_HOLD: bool = false;
 static mut IS_REMOTE_ALIVE: bool = false;
@@ -80,8 +81,12 @@ extern "C" fn mouse_handler(ev: *const c_int) {
             // mousemoverel
             match ev[0] {
                 MOUSE_REL_MOVE => {
-                    POS_IN_REMOTE_SCREEN[0] += ev[1];
-                    POS_IN_REMOTE_SCREEN[1] += ev[2];
+                    POS_IN_REMOTE_SCREEN_FL[0] += (ev[1] as f32) * 1.5;
+                    POS_IN_REMOTE_SCREEN_FL[1] += (ev[2] as f32) * 1.5;
+                    POS_IN_REMOTE_SCREEN[0] = POS_IN_REMOTE_SCREEN_FL[0] as i32;
+                    POS_IN_REMOTE_SCREEN[1] = POS_IN_REMOTE_SCREEN_FL[1] as i32;
+                    // POS_IN_REMOTE_SCREEN[0] += ev[1];
+                    // POS_IN_REMOTE_SCREEN[1] += ev[2];
                     // 检测是否移动到屏幕边缘并解除控制
                     match SIDE {
                         ControlSide::LEFT => {
