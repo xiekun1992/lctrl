@@ -37,11 +37,11 @@ pub enum ControlSide {
     RIGHT,
 }
 
-pub static mut REMOTE_SCREEN_SIZE: [i32; 4] = [0, 0, 0, 0]; // left, right, top, bottom
+pub static mut REMOTE_SCREEN_SIZE: [f32; 4] = [0.0, 0.0, 0.0, 0.0]; // left, right, top, bottom
 pub static mut SELF_SCREEN_SIZE: [i32; 4] = [0, 0, 0, 0]; // left, right, top, bottom
 pub static mut SIDE: ControlSide = ControlSide::NONE;
-static mut POS_IN_REMOTE_SCREEN: [i32; 2] = [0, 0];
-static mut POS_IN_REMOTE_SCREEN_FL: [f32; 2] = [0f32, 0f32];
+static mut POS_IN_REMOTE_SCREEN: [f32; 2] = [0.0, 0.0];
+// static mut POS_IN_REMOTE_SCREEN_FL: [f32; 2] = [0f32, 0f32];
 static mut BLOCK: bool = false;
 static mut MOUSE_BUTTON_HOLD: bool = false;
 static mut IS_REMOTE_ALIVE: bool = false;
@@ -81,10 +81,18 @@ extern "C" fn mouse_handler(ev: *const c_int) {
             // mousemoverel
             match ev[0] {
                 MOUSE_REL_MOVE => {
-                    POS_IN_REMOTE_SCREEN_FL[0] += (ev[1] as f32) * 1.5;
-                    POS_IN_REMOTE_SCREEN_FL[1] += (ev[2] as f32) * 1.5;
-                    POS_IN_REMOTE_SCREEN[0] = POS_IN_REMOTE_SCREEN_FL[0] as i32;
-                    POS_IN_REMOTE_SCREEN[1] = POS_IN_REMOTE_SCREEN_FL[1] as i32;
+                    let mut xfactor = 1.0;
+                    let mut yfactor = 1.0;
+                    if ev[1].abs() >= 6 {
+                        xfactor = 2.0;
+                    }
+                    if ev[2].abs() >= 6 {
+                        yfactor = 2.0;
+                    }
+                    POS_IN_REMOTE_SCREEN[0] += (ev[1] as f32) * xfactor;
+                    POS_IN_REMOTE_SCREEN[1] += (ev[2] as f32) * yfactor;
+                    // POS_IN_REMOTE_SCREEN[0] = POS_IN_REMOTE_SCREEN_FL[0] as i32;
+                    // POS_IN_REMOTE_SCREEN[1] = POS_IN_REMOTE_SCREEN_FL[1] as i32;
                     // POS_IN_REMOTE_SCREEN[0] += ev[1];
                     // POS_IN_REMOTE_SCREEN[1] += ev[2];
                     // 检测是否移动到屏幕边缘并解除控制
@@ -124,8 +132,8 @@ extern "C" fn mouse_handler(ev: *const c_int) {
                     }
 
                     // 鼠标相对移动转换成绝对移动
-                    let x = POS_IN_REMOTE_SCREEN[0];
-                    let y = POS_IN_REMOTE_SCREEN[1];
+                    let x = POS_IN_REMOTE_SCREEN[0] as i32;
+                    let y = POS_IN_REMOTE_SCREEN[1] as i32;
                     let bytes_to_send = [1, x, y];
                     send_to_remote(bytes_to_send.as_slice());
                 }
@@ -157,7 +165,7 @@ extern "C" fn mouse_handler(ev: *const c_int) {
                             if ev[1] <= SELF_SCREEN_SIZE[0] {
                                 listener_setBlock(1);
                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                                POS_IN_REMOTE_SCREEN[1] = ev[2];
+                                POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
                                 BLOCK = true;
                             }
                         }
@@ -165,7 +173,7 @@ extern "C" fn mouse_handler(ev: *const c_int) {
                             if ev[1] >= SELF_SCREEN_SIZE[1] {
                                 listener_setBlock(1);
                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                                POS_IN_REMOTE_SCREEN[1] = ev[2];
+                                POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
                                 BLOCK = true;
                             }
                         }

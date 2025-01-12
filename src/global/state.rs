@@ -51,6 +51,14 @@ impl Rect {
     pub fn to_arr(&self) -> [i32; 4] {
         [self.left, self.right, self.top, self.bottom]
     }
+    pub fn to_float_arr(&self) -> [f32; 4] {
+        [
+            self.left as f32,
+            self.right as f32,
+            self.top as f32,
+            self.bottom as f32,
+        ]
+    }
 }
 
 // #[link(name = "libcapture")]
@@ -186,7 +194,7 @@ impl State {
             Some(rdev) => {
                 if self.find_remote_by_ip(&rdev.ip).is_some() {
                     unsafe {
-                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_arr();
+                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_float_arr();
                         SELF_SCREEN_SIZE = self.screen_size.clone().to_arr();
                         SIDE = self.side.clone();
                     }
