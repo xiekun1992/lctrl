@@ -83,11 +83,23 @@ extern "C" fn mouse_handler(ev: *const c_int) {
                 MOUSE_REL_MOVE => {
                     let mut xfactor = 1.0;
                     let mut yfactor = 1.0;
-                    if ev[1].abs() >= 6 {
-                        xfactor = 2.0;
+                    if ev[1].abs() >= 3 {
+                        xfactor *= 1.5;
                     }
-                    if ev[2].abs() >= 6 {
-                        yfactor = 2.0;
+                    if ev[2].abs() >= 3 {
+                        yfactor *= 1.5;
+                    }
+                    if ev[1].abs() >= 10 {
+                        xfactor *= 1.5;
+                    }
+                    if ev[2].abs() >= 10 {
+                        yfactor *= 1.5;
+                    }
+                    if ev[1].abs() >= 20 {
+                        xfactor *= 1.5;
+                    }
+                    if ev[2].abs() >= 20 {
+                        yfactor *= 1.5;
                     }
                     POS_IN_REMOTE_SCREEN[0] += (ev[1] as f32) * xfactor;
                     POS_IN_REMOTE_SCREEN[1] += (ev[2] as f32) * yfactor;
