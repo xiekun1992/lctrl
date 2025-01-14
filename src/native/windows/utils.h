@@ -8,5 +8,6 @@
 
 DLL_EXPORT void utils_open(wchar_t *path);
 DLL_EXPORT RECT get_screen_size();
+DLL_EXPORT RECT *get_screens(int *count);
 DLL_EXPORT BOOL is_run_as_admin();
 DLL_EXPORT VOID run_as_admin();
