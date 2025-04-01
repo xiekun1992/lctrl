@@ -63,6 +63,9 @@ pub fn add_windows_firewall_rule() {
 #[cfg(target_os = "linux")]
 pub fn add_windows_firewall_rule() {}
 
+#[cfg(target_os = "macos")]
+pub fn add_windows_firewall_rule() {}
+
 pub fn init() {
     // 注册服务
     unsafe {
@@ -93,6 +96,7 @@ pub fn stop() {
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn listen_service_close() {
     thread::spawn(|| unsafe {
         connectPipe();

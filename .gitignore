@@ -5,3 +5,5 @@
 *.log
 *.bat
 /lctrl.*
+.DS_Store
+.vscode

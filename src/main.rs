@@ -66,5 +66,13 @@ fn main() -> Result<(), i32> {
     } else {
         error!("please run ./run.sh in current directory");
     }
+
+    #[cfg(target_os = "macos")]
+    {
+        global::init();
+        discover::init();
+        input::init();
+        let _ = web_api::web_main();
+    }
     return Err(0);
 }
