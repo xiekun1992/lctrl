@@ -47,8 +47,9 @@ impl UDPServer {
     pub fn send(&self) {
         loop {
             let mut remote_infos = Vec::new();
-            {
-                if let Ok(state) = STATE.lock() {
+
+            if let Ok(state) = STATE.lock() {
+                if state.setting.auto_discover {
                     let dev = &state.cur_device;
                     for interface in &dev.ifs {
                         let addr = format!("{}:{}", interface.broadcast_addr, self.port);
@@ -58,6 +59,7 @@ impl UDPServer {
                             mac_addr: interface.mac_addr.clone(),
                             screen_size: state.screen_size.clone(),
                             netmask: interface.netmask.to_string(),
+                            screens: state.screens.clone(),
                             alive_timestamp: 0,
                         }
                         .to_json();

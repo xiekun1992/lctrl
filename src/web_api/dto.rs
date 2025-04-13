@@ -12,3 +12,9 @@ pub struct RemoteDevices {
     pub manual_remotes: Vec<RemoteDevice>,
     pub remotes: Vec<RemoteDevice>,
 }
+
+impl RemoteDevices {
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+}

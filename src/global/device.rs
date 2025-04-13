@@ -3,7 +3,11 @@ use netdev::mac::MacAddr;
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 
-use super::state::Rect;
+use super::state::{Rect, RECT};
+
+extern "C" {
+    fn get_screens(count: *mut i32) -> *const Rect;
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Interface {
@@ -16,7 +20,9 @@ pub struct Interface {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeviceInfo {
     pub hostname: String,
+    pub screens: Vec<Rect>,
     pub ifs: Vec<Interface>,
+    pub auto_discover: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -26,6 +32,8 @@ pub struct RemoteDevice {
     pub netmask: String,
     pub mac_addr: String,
     pub screen_size: Rect,
+    #[serde(default = "default_screens")]
+    pub screens: Vec<Rect>,
     pub alive_timestamp: u64,
 }
 
@@ -40,11 +48,27 @@ impl RemoteDevice {
     }
 }
 
+fn default_screens() -> Vec<Rect> {
+    vec![Rect {
+        top: 0,
+        right: 1366,
+        bottom: 768,
+        left: 0,
+    }]
+}
+
 impl DeviceInfo {
     pub fn new() -> DeviceInfo {
+        let mut count = 0;
+        let screens = unsafe {
+            let screens_size = get_screens(&mut count);
+            std::slice::from_raw_parts(screens_size, count as usize)
+        };
         DeviceInfo {
             hostname: String::from(gethostname().to_str().unwrap()),
             ifs: get_interfaces(),
+            screens: screens.to_vec(),
+            auto_discover: true,
         }
     }
 }

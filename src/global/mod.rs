@@ -6,6 +6,7 @@ use self::{device::get_interfaces, state::STATE};
 
 pub mod db;
 pub mod device;
+pub mod setting;
 pub mod state;
 
 pub fn init() {

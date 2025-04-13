@@ -9,6 +9,7 @@ use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, 
 use super::{
     db::DB,
     device::{DeviceInfo, RemoteDevice},
+    setting::Setting,
 };
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,7 @@ pub struct RECT {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[repr(C)]
 pub struct Rect {
     pub left: i32,
     pub top: i32,
@@ -64,6 +66,7 @@ impl Rect {
 // #[link(name = "libcapture")]
 extern "C" {
     fn get_screen_size() -> RECT;
+    fn get_screens(count: *mut i32) -> *const Rect;
 }
 
 lazy_static! {
@@ -76,35 +79,42 @@ pub struct State {
     pub cur_device: DeviceInfo,
     pub remote_peer: Option<RemoteDevice>,
     pub screen_size: Rect,
+    pub screens: Vec<Rect>,
     pub side: ControlSide,
     pub db: DB,
+    pub setting: Setting,
 }
 
 impl State {
     fn new() -> State {
         let db = DB::new();
         let mut screen_size = Rect::new();
-        unsafe {
-            let s = get_screen_size();
-            let s = if s.left == s.right && s.top == s.bottom {
-                match db.get_current_device() {
-                    Some(size) => size,
-                    None => RECT {
-                        left: 0,
-                        top: 0,
-                        right: 800,
-                        bottom: 600,
-                    },
-                }
-            } else {
-                s
-            };
-            info!("screen rect: {:?}", s);
-            screen_size.left = s.left;
-            screen_size.top = s.top;
-            screen_size.right = s.right;
-            screen_size.bottom = s.bottom;
-        }
+        let s = unsafe { get_screen_size() };
+        let s = if s.left == s.right && s.top == s.bottom {
+            match db.get_current_device() {
+                Some(size) => size,
+                None => RECT {
+                    left: 0,
+                    top: 0,
+                    right: 800,
+                    bottom: 600,
+                },
+            }
+        } else {
+            s
+        };
+        info!("screen rect: {:?}", s);
+        screen_size.left = s.left;
+        screen_size.top = s.top;
+        screen_size.right = s.right;
+        screen_size.bottom = s.bottom;
+
+        let mut count = 0;
+        let screens = unsafe {
+            let screens_size = get_screens(&mut count);
+            std::slice::from_raw_parts(screens_size, count as usize)
+        };
+        info!("screens: {:#?}, count: {:?}", screens, count);
         let (remote_peer, side) = db.get_remote_peer();
         let remotes = Vec::new();
         let manual_remotes = Vec::new();
@@ -116,9 +126,11 @@ impl State {
             manual_remotes: Mutex::new(manual_remotes),
             cur_device: DeviceInfo::new(),
             screen_size,
+            screens: screens.to_vec(),
             remote_peer,
             side,
             db,
+            setting: Setting::new(),
         }
     }
 
@@ -222,6 +234,10 @@ impl State {
             Err(_e) => None,
         };
         return res;
+    }
+
+    pub fn set_auto_discover(&mut self, active: bool) {
+        self.setting.auto_discover = active;
     }
 }
 

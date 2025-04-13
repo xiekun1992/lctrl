@@ -7,14 +7,15 @@ mod launch;
 mod manual_peer;
 mod remote_peer;
 mod remotes;
+mod setting;
+mod sse;
 // use std::{fs, vec};
 
 use actix_cors::Cors;
 // use actix_files::Files;
-use actix_multipart::form::{tempfile::TempFileConfig, MultipartFormConfig};
-use actix_web::web::service;
-use actix_web::{http, middleware, App, HttpServer};
-use actix_web::{web, HttpResponse};
+use actix_multipart::form::MultipartFormConfig;
+use actix_web::web;
+use actix_web::{middleware, App, HttpServer};
 use tracing::info;
 
 #[actix_web::main]
@@ -49,6 +50,7 @@ pub async fn web_main() -> std::io::Result<()> {
             // .service(Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api")
+                    .service(sse::sse_handler)
                     .service(launch::put)
                     // .service(clipboard::put)
                     .service(file::post)
@@ -60,7 +62,8 @@ pub async fn web_main() -> std::io::Result<()> {
                     .service(remote_peer::get)
                     .service(remote_peer::put)
                     .service(remote_peer::delete)
-                    .service(manual_peer::put),
+                    .service(manual_peer::put)
+                    .service(setting::set_auto_discover),
             )
             // .service(frontend::get)
             .service(frontend::get_resource)

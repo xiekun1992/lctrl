@@ -30,6 +30,7 @@ pub async fn get_as_remote(params: web::Query<Params>) -> impl Responder {
                         netmask: iface.netmask.to_string(),
                         mac_addr: iface.mac_addr.to_string(),
                         screen_size: state.screen_size.clone(),
+                        screens: state.screens.clone(),
                         alive_timestamp: 0,
                     };
                     HttpResponse::Ok().json(dev)

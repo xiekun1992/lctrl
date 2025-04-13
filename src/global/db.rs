@@ -93,17 +93,23 @@ impl DB {
                     .query_map([], |row| {
                         // println!("{:?}", row);
                         let remote_peer = RemoteDevice {
-                            hostname: row.get(0).unwrap(),
-                            ip: row.get(1).unwrap(),
-                            mac_addr: row.get(7).unwrap(),
+                            hostname: row.get(0).unwrap_or("".to_string()),
+                            ip: row.get(1).unwrap_or("".to_string()),
+                            mac_addr: row.get(7).unwrap_or("".to_string()),
                             screen_size: Rect::from(
-                                row.get(2).unwrap(),
-                                row.get(4).unwrap(),
-                                row.get(3).unwrap(),
-                                row.get(5).unwrap(),
+                                row.get(2).unwrap_or(0),
+                                row.get(4).unwrap_or(0),
+                                row.get(3).unwrap_or(800),
+                                row.get(5).unwrap_or(600),
                             ),
+                            screens: vec![Rect {
+                                top: 0,
+                                right: 1366,
+                                bottom: 768,
+                                left: 0,
+                            }],
                             alive_timestamp: 0,
-                            netmask: row.get(8).unwrap(),
+                            netmask: row.get(8).unwrap_or("".to_string()),
                         };
                         let mut side = ControlSide::NONE;
                         match row.get(6).unwrap() {
