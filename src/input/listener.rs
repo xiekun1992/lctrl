@@ -229,7 +229,7 @@ extern "C" fn hotkey_handler(hotkeys: *const [c_int; 7]) {
             mouse_move(center_x, center_y);
 
             // 通知受控端将按键释放
-            let hotkeys = slice::from_raw_parts(hotkeys, 5);
+            let hotkeys = slice::from_raw_parts(hotkeys, 3);
             for key in hotkeys {
                 send_to_remote(key);
             }
@@ -248,13 +248,9 @@ pub fn release() {
     // debug!("release");
     unsafe {
         if IS_REMOTE_ALIVE {
-            // REMOTE_SCREEN_SIZE = [0, 0];
-            // SELF_SCREEN_SIZE = [0, 0];
-            // SIDE = ControlSide::NONE;
             BLOCK = false;
             IS_REMOTE_ALIVE = false;
             POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-            #[cfg(target_os = "windows")]
             listener_setBlock(0);
         }
     }
