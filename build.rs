@@ -11,8 +11,8 @@ fn main() {
             "src/native/linux/input/input.c",
             "src/native/linux/wayland/utils.c",
         ];
-        println!("cargo:rustc-link-lib=dylib=wayland-client");
         cc::Build::new().files(c_files).compile("libcapture");
+        println!("cargo:rustc-link-lib=dylib=wayland-client");
     }
 
     #[cfg(target_os = "windows")]
