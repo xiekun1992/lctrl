@@ -35,6 +35,7 @@ pub enum ControlSide {
     NONE,
     LEFT,
     RIGHT,
+    TOP
 }
 
 pub static mut REMOTE_SCREEN_SIZE: [f32; 4] = [0.0, 0.0, 0.0, 0.0]; // left, right, top, bottom
@@ -127,6 +128,15 @@ extern "C" fn mouse_handler(ev: *const c_int) {
                                 }
                             }
                         }
+                        ControlSide::TOP => {
+                            if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
+                                if !MOUSE_BUTTON_HOLD {
+                                    listener_setBlock(0);
+                                    BLOCK = false;
+                                    POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+                                }
+                            }
+                        }
                         _ => {}
                     }
                     // 检测是否超过屏幕上下限
@@ -186,6 +196,14 @@ extern "C" fn mouse_handler(ev: *const c_int) {
                                 listener_setBlock(1);
                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
                                 POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
+                                BLOCK = true;
+                            }
+                        }
+                        ControlSide::TOP => {
+                            if ev[2] <= SELF_SCREEN_SIZE[2] {
+                                listener_setBlock(1);
+                                POS_IN_REMOTE_SCREEN[0] = ev[1] as f32;
+                                POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
                                 BLOCK = true;
                             }
                         }

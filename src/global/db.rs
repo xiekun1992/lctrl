@@ -49,6 +49,7 @@ impl DB {
             ControlSide::NONE => 0,
             ControlSide::LEFT => 1,
             ControlSide::RIGHT => 2,
+            ControlSide::TOP => 3,
         };
         self.conn
             .execute(
