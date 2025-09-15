@@ -4,7 +4,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE};
+use crate::{
+    input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE},
+    web_api::dto::ScreenSetting,
+};
 
 use super::{
     db::DB,
@@ -111,8 +114,8 @@ impl State {
 
         let mut count = 0;
         let screens = unsafe {
-            let screens_size = get_screens(&mut count);
-            std::slice::from_raw_parts(screens_size, count as usize)
+            let screens = get_screens(&mut count);
+            std::slice::from_raw_parts(screens, count as usize)
         };
         info!("screens: {:#?}, count: {:?}", screens, count);
         let (remote_peer, side) = db.get_remote_peer();
@@ -236,8 +239,16 @@ impl State {
         return res;
     }
 
+    pub fn get_setting(&self) -> Setting {
+        self.setting.clone()
+    }
+
     pub fn set_auto_discover(&mut self, active: bool) {
         self.setting.auto_discover = active;
+    }
+
+    pub fn set_screens_setting(&mut self, screen_setting: ScreenSetting) {
+        self.setting.screen_setting = screen_setting;
     }
 }
 

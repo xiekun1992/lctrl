@@ -1,6 +1,6 @@
 mod clipboard;
 mod device;
-mod dto;
+pub mod dto;
 mod file;
 mod frontend;
 mod launch;
@@ -63,7 +63,9 @@ pub async fn web_main() -> std::io::Result<()> {
                     .service(remote_peer::put)
                     .service(remote_peer::delete)
                     .service(manual_peer::put)
-                    .service(setting::set_auto_discover),
+                    .service(setting::set_auto_discover)
+                    .service(setting::get_setting)
+                    .service(setting::set_screens),
             )
             // .service(frontend::get)
             .service(frontend::get_resource)
