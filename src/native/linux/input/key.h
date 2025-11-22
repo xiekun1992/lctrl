@@ -376,7 +376,3 @@ static const int sc_to_key[] = {
     [SCANCODE_KPSLASH] = KEY_KPSLASH,
     [SCANCODE_KPENTER] = KEY_KPENTER};
 
-int scancode_to_key(int scancode)
-{
-    return sc_to_key[scancode];
-}

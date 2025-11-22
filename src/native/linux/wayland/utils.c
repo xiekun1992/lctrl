@@ -8,7 +8,7 @@ DLL_EXPORT bool is_run_as_admin()
 DLL_EXPORT void run_as_admin()
 {
 }
-
+RECT screens_rect[16];
 struct wl_display *display;
 struct wl_registry *registry;
 struct wl_output *output;
@@ -103,7 +103,7 @@ DLL_EXPORT RECT get_screen_size()
     wl_display_roundtrip(display);
 
     // Wait for the output information to be received
-    wl_display_roundtrip(display);
+    // wl_display_roundtrip(display);
 
     int x = 0, y = 0, width = 0, height = 0;
     struct output *obj;
@@ -141,4 +141,39 @@ DLL_EXPORT RECT get_screen_size()
     wl_display_disconnect(display);
 
     return rect;
+}
+
+DLL_EXPORT RECT *get_screens(int *count)
+{
+    display = wl_display_connect(NULL);
+    if (display == NULL)
+    {
+        fprintf(stderr, "Failed to connect to Wayland display\n");
+        return NULL;
+    }
+
+    wl_list_init(&output_list);
+
+    // Get the Wayland registry
+    registry = wl_display_get_registry(display);
+    wl_registry_add_listener(registry, &registry_listener, NULL);
+    // Wait for the output information to be received
+    wl_display_roundtrip(display);
+
+    int i = 0;
+    struct output *obj;
+    wl_list_for_each(obj, &output_list, link)
+    {
+        screens_rect[i].left = obj->x;
+        screens_rect[i].top = obj->y;
+        screens_rect[i].right = obj->x + obj->width;
+        screens_rect[i].bottom = obj->y + obj->height;
+        i++;
+    }
+    *count = i;
+
+    // Clean up and disconnect from Wayland display
+    wl_display_disconnect(display);
+
+    return &screens_rect;
 }

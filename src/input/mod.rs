@@ -13,7 +13,6 @@ lazy_static! {
 
 pub fn init() {
     // clipboard::init();
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
     listener::init();
     replay::init();
 

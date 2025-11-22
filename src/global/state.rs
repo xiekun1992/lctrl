@@ -113,9 +113,14 @@ impl State {
         screen_size.bottom = s.bottom;
 
         let mut count = 0;
+        let zero_screens = vec![];
         let screens = unsafe {
-            let screens = get_screens(&mut count);
-            std::slice::from_raw_parts(screens, count as usize)
+            let screens_rects = get_screens(&mut count);
+            if screens_rects.is_null() || count == 0 {
+                zero_screens.as_slice()
+            } else {
+                std::slice::from_raw_parts(screens_rects, count as usize)
+            }
         };
         info!("screens: {:#?}, count: {:?}", screens, count);
         let (remote_peer, side) = db.get_remote_peer();

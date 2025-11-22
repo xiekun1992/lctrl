@@ -8,8 +8,8 @@ use std::{
     mem, slice, thread,
 };
 
-type CInputHandler = extern "C" fn(*const c_int);
-type HotKeyHandler = extern "C" fn(*const [c_int; 7]);
+type CInputHandler = extern "C" fn(*const c_long);
+type HotKeyHandler = extern "C" fn(*const [c_long; 7]);
 // #[link(name = "libcapture")]
 extern "C" {
     fn listener_init(
@@ -35,7 +35,7 @@ pub enum ControlSide {
     NONE,
     LEFT,
     RIGHT,
-    TOP
+    TOP,
 }
 
 pub static mut REMOTE_SCREEN_SIZE: [f32; 4] = [0.0, 0.0, 0.0, 0.0]; // left, right, top, bottom
@@ -66,7 +66,8 @@ fn send_to_remote(ev: &[i32]) {
     }
 }
 
-extern "C" fn mouse_handler(ev: *const c_int) {
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+extern "C" fn mouse_handler(ev: *const c_long) {
     unsafe {
         if !IS_REMOTE_ALIVE {
             return;
@@ -221,8 +222,8 @@ extern "C" fn mouse_handler(ev: *const c_int) {
         }
     }
 }
-
-extern "C" fn keyboard_handler(ev: *const c_int) {
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+extern "C" fn keyboard_handler(ev: *const c_long) {
     unsafe {
         if !IS_REMOTE_ALIVE {
             return;
@@ -235,7 +236,146 @@ extern "C" fn keyboard_handler(ev: *const c_int) {
     }
 }
 
-extern "C" fn hotkey_handler(hotkeys: *const [c_int; 7]) {
+#[cfg(target_os = "linux")]
+extern "C" fn mouse_handler(ev: *const c_long) {
+    unsafe {
+        if !IS_REMOTE_ALIVE {
+            return;
+        }
+        let ev = slice::from_raw_parts(ev, 5);
+        let ev = &[
+            ev[0] as i32,
+            ev[1] as i32,
+            ev[2] as i32,
+            ev[3] as i32,
+            ev[4] as i32,
+        ];
+        // println!(
+        //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
+        //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
+        // );
+        // 控制状态下转发鼠标动作
+        if BLOCK {
+            // mousemoverel
+            match ev[0] {
+                MOUSE_REL_MOVE => {
+                    let mut xfactor = 1.0;
+                    let mut yfactor = 1.0;
+                    // if ev[1].abs() >= 3 {
+                    //     xfactor *= 1.5;
+                    // }
+                    // if ev[2].abs() >= 3 {
+                    //     yfactor *= 1.5;
+                    // }
+                    // if ev[1].abs() >= 10 {
+                    //     xfactor *= 1.5;
+                    // }
+                    // if ev[2].abs() >= 10 {
+                    //     yfactor *= 1.5;
+                    // }
+                    // if ev[1].abs() >= 20 {
+                    //     xfactor *= 1.5;
+                    // }
+                    // if ev[2].abs() >= 20 {
+                    //     yfactor *= 1.5;
+                    // }
+                    POS_IN_REMOTE_SCREEN[0] += (ev[1] as f32) * xfactor;
+                    POS_IN_REMOTE_SCREEN[1] += (ev[2] as f32) * yfactor;
+                    // POS_IN_REMOTE_SCREEN[0] = POS_IN_REMOTE_SCREEN_FL[0] as i32;
+                    // POS_IN_REMOTE_SCREEN[1] = POS_IN_REMOTE_SCREEN_FL[1] as i32;
+                    // POS_IN_REMOTE_SCREEN[0] += ev[1];
+                    // POS_IN_REMOTE_SCREEN[1] += ev[2];
+                    // 检测是否移动到屏幕边缘并解除控制
+                    match SIDE {
+                        ControlSide::LEFT => {
+                            if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
+                                if !MOUSE_BUTTON_HOLD {
+                                    listener_setBlock(0);
+                                    BLOCK = false;
+                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+                                }
+                            }
+                        }
+                        ControlSide::RIGHT => {
+                            if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
+                                if !MOUSE_BUTTON_HOLD {
+                                    listener_setBlock(0);
+                                    BLOCK = false;
+                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                                }
+                            }
+                        }
+                        ControlSide::TOP => {
+                            if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
+                                if !MOUSE_BUTTON_HOLD {
+                                    listener_setBlock(0);
+                                    BLOCK = false;
+                                    POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                    // 检测是否超过屏幕上下限
+                    if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
+                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                    }
+                    if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
+                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+                    }
+                    if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
+                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
+                    }
+                    if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
+                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+                    }
+
+                    // 鼠标相对移动转换成绝对移动
+                    let x = POS_IN_REMOTE_SCREEN[0] as i32;
+                    let y = POS_IN_REMOTE_SCREEN[1] as i32;
+                    let bytes_to_send = [1, x, y];
+                    send_to_remote(bytes_to_send.as_slice());
+                }
+                MOUSE_MOVE => {}
+                MOUSE_DOWN => {
+                    MOUSE_BUTTON_HOLD = true;
+                    send_to_remote(ev);
+                }
+                MOUSE_UP => {
+                    MOUSE_BUTTON_HOLD = false;
+                    send_to_remote(ev);
+                }
+                _ => {
+                    send_to_remote(ev);
+                }
+            }
+        }
+    }
+}
+#[cfg(target_os = "linux")]
+extern "C" fn keyboard_handler(ev: *const c_long) {
+    unsafe {
+        if !IS_REMOTE_ALIVE {
+            return;
+        }
+        if BLOCK {
+            let ev = slice::from_raw_parts(ev, 7);
+            let ev = &[
+                ev[0] as i32,
+                ev[1] as i32,
+                ev[2] as i32,
+                ev[3] as i32,
+                ev[4] as i32,
+                ev[5] as i32,
+                ev[6] as i32,
+            ];
+            // debug!("keyboard: {:?}", ev);
+            send_to_remote(ev);
+        }
+    }
+}
+
+extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
     info!("unblock hotkey triggered");
     unsafe {
         if BLOCK {
@@ -245,12 +385,31 @@ extern "C" fn hotkey_handler(hotkeys: *const [c_int; 7]) {
             let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
             let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
             mouse_move(center_x, center_y);
+        } else {
+            BLOCK = true;
+            listener_setBlock(1);
+            POS_IN_REMOTE_SCREEN[0] = (REMOTE_SCREEN_SIZE[1] - REMOTE_SCREEN_SIZE[0]) / 2.0;
+            POS_IN_REMOTE_SCREEN[1] = (REMOTE_SCREEN_SIZE[3] - REMOTE_SCREEN_SIZE[2]) / 2.0;
 
-            // 通知受控端将按键释放
-            let hotkeys = slice::from_raw_parts(hotkeys, 3);
-            for key in hotkeys {
-                send_to_remote(key);
-            }
+            // 鼠标相对移动转换成绝对移动
+            let x = POS_IN_REMOTE_SCREEN[0] as i32;
+            let y = POS_IN_REMOTE_SCREEN[1] as i32;
+            let bytes_to_send = [1, x, y];
+            send_to_remote(bytes_to_send.as_slice());
+        }
+        // 通知受控端将按键释放
+        let hotkeys = slice::from_raw_parts(hotkeys, 5);
+        for key in hotkeys {
+            let i32_key = [
+                key[0] as i32,
+                key[1] as i32,
+                key[2] as i32,
+                key[3] as i32,
+                key[4] as i32,
+                key[5] as i32,
+                key[6] as i32,
+            ];
+            send_to_remote(i32_key.as_slice());
         }
     }
 }
