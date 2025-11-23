@@ -66,14 +66,19 @@ fn send_to_remote(ev: &[i32]) {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "macos"))]
 extern "C" fn mouse_handler(ev: *const c_long) {
     unsafe {
         if !IS_REMOTE_ALIVE {
             return;
         }
         let ev = slice::from_raw_parts(ev, 5);
-
+        let ev = &[
+            ev[0] as i32,
+            ev[1] as i32,
+            ev[2] as i32,
+            ev[3] as i32,
+            ev[4] as i32,
+        ];
         // println!(
         //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
         //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
@@ -222,137 +227,7 @@ extern "C" fn mouse_handler(ev: *const c_long) {
         }
     }
 }
-#[cfg(any(target_os = "windows", target_os = "macos"))]
-extern "C" fn keyboard_handler(ev: *const c_long) {
-    unsafe {
-        if !IS_REMOTE_ALIVE {
-            return;
-        }
-        if BLOCK {
-            let ev = slice::from_raw_parts(ev, 7);
-            // debug!("keyboard: {:?}", ev);
-            send_to_remote(ev);
-        }
-    }
-}
 
-#[cfg(target_os = "linux")]
-extern "C" fn mouse_handler(ev: *const c_long) {
-    unsafe {
-        if !IS_REMOTE_ALIVE {
-            return;
-        }
-        let ev = slice::from_raw_parts(ev, 5);
-        let ev = &[
-            ev[0] as i32,
-            ev[1] as i32,
-            ev[2] as i32,
-            ev[3] as i32,
-            ev[4] as i32,
-        ];
-        // println!(
-        //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
-        //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
-        // );
-        // 控制状态下转发鼠标动作
-        if BLOCK {
-            // mousemoverel
-            match ev[0] {
-                MOUSE_REL_MOVE => {
-                    let mut xfactor = 1.0;
-                    let mut yfactor = 1.0;
-                    // if ev[1].abs() >= 3 {
-                    //     xfactor *= 1.5;
-                    // }
-                    // if ev[2].abs() >= 3 {
-                    //     yfactor *= 1.5;
-                    // }
-                    // if ev[1].abs() >= 10 {
-                    //     xfactor *= 1.5;
-                    // }
-                    // if ev[2].abs() >= 10 {
-                    //     yfactor *= 1.5;
-                    // }
-                    // if ev[1].abs() >= 20 {
-                    //     xfactor *= 1.5;
-                    // }
-                    // if ev[2].abs() >= 20 {
-                    //     yfactor *= 1.5;
-                    // }
-                    POS_IN_REMOTE_SCREEN[0] += (ev[1] as f32) * xfactor;
-                    POS_IN_REMOTE_SCREEN[1] += (ev[2] as f32) * yfactor;
-                    // POS_IN_REMOTE_SCREEN[0] = POS_IN_REMOTE_SCREEN_FL[0] as i32;
-                    // POS_IN_REMOTE_SCREEN[1] = POS_IN_REMOTE_SCREEN_FL[1] as i32;
-                    // POS_IN_REMOTE_SCREEN[0] += ev[1];
-                    // POS_IN_REMOTE_SCREEN[1] += ev[2];
-                    // 检测是否移动到屏幕边缘并解除控制
-                    match SIDE {
-                        ControlSide::LEFT => {
-                            if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                                }
-                            }
-                        }
-                        ControlSide::RIGHT => {
-                            if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                                }
-                            }
-                        }
-                        ControlSide::TOP => {
-                            if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                    // 检测是否超过屏幕上下限
-                    if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                    }
-                    if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                    }
-                    if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
-                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
-                    }
-                    if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
-                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
-                    }
-
-                    // 鼠标相对移动转换成绝对移动
-                    let x = POS_IN_REMOTE_SCREEN[0] as i32;
-                    let y = POS_IN_REMOTE_SCREEN[1] as i32;
-                    let bytes_to_send = [1, x, y];
-                    send_to_remote(bytes_to_send.as_slice());
-                }
-                MOUSE_MOVE => {}
-                MOUSE_DOWN => {
-                    MOUSE_BUTTON_HOLD = true;
-                    send_to_remote(ev);
-                }
-                MOUSE_UP => {
-                    MOUSE_BUTTON_HOLD = false;
-                    send_to_remote(ev);
-                }
-                _ => {
-                    send_to_remote(ev);
-                }
-            }
-        }
-    }
-}
-#[cfg(target_os = "linux")]
 extern "C" fn keyboard_handler(ev: *const c_long) {
     unsafe {
         if !IS_REMOTE_ALIVE {

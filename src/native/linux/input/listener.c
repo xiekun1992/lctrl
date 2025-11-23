@@ -21,16 +21,17 @@ void handle_event(struct libevdev *dev)
                 struct input_event *ev_frame = &listener_context.ev_stack[listener_context.stack_top];
                 if (ev_frame->type == EV_ABS && (ev_frame->code == ABS_X || ev_frame->code == ABS_Y))
                 {
-                    // touchpad
-                    const char *name = libevdev_event_type_get_name(ev_frame->type);
-                    const char *code_name = libevdev_event_code_get_name(ev_frame->type, ev_frame->code);
-                    printf("Event: %s %d %s %d %d\n", name, ev_frame->type, code_name, ev_frame->code, ev_frame->value);
+                    // touchpad, do not handle this, because absolute position can not map to screen position directly
+
+                    // const char *name = libevdev_event_type_get_name(ev_frame->type);
+                    // const char *code_name = libevdev_event_code_get_name(ev_frame->type, ev_frame->code);
+                    // printf("Event: %s %d %s %d %d\n", name, ev_frame->type, code_name, ev_frame->code, ev_frame->value);
                 }
                 else if (ev_frame->type == EV_REL && REL_X <= ev_frame->code && ev_frame->code <= REL_MISC)
                 {
-                    const char *name = libevdev_event_type_get_name(ev_frame->type);
-                    const char *code_name = libevdev_event_code_get_name(ev_frame->type, ev_frame->code);
-                    printf("Event: %s %d %s %d %d\n", name, ev_frame->type, code_name, ev_frame->code, ev_frame->value);
+                    // const char *name = libevdev_event_type_get_name(ev_frame->type);
+                    // const char *code_name = libevdev_event_code_get_name(ev_frame->type, ev_frame->code);
+                    // printf("Event: %s %d %s %d %d\n", name, ev_frame->type, code_name, ev_frame->code, ev_frame->value);
 
                     switch (ev_frame->code)
                     {
@@ -55,9 +56,11 @@ void handle_event(struct libevdev *dev)
                         if (ev_frame->code == REL_X)
                         {
                             mouse_x = ev_frame->value;
+                            mouse_y = 0;
                         }
                         if (ev_frame->code == REL_Y)
                         {
+                            mouse_x = 0;
                             mouse_y = ev_frame->value;
                         }
                         long params[5] = {L_MOUSEMOVEREL, (long)mouse_x, (long)mouse_y, 0, 0};
