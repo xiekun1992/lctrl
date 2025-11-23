@@ -46,18 +46,20 @@ LRESULT CALLBACK keyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam)
         {
             context.is_escape_down = true;
         }
-        if (context.is_lcontrol_down &&
-            context.is_lshift_down &&
+        if (
+            // context.is_lcontrol_down &&
+            // context.is_lshift_down &&
             context.is_lwin_down &&
             context.is_lalt_down &&
-            context.is_escape_down)
+            // context.is_escape_down
+        )
         {
             long hotkeys[5][7] = {
-                {L_KEYUP, (long)VK_LCONTROL, (long)keycode_to_scancode(VK_LCONTROL), 0, 0, 0, 0},
-                {L_KEYUP, (long)VK_LSHIFT, (long)keycode_to_scancode(VK_LSHIFT), 0, 0, 0, 0},
+                // {L_KEYUP, (long)VK_LCONTROL, (long)keycode_to_scancode(VK_LCONTROL), 0, 0, 0, 0},
+                // {L_KEYUP, (long)VK_LSHIFT, (long)keycode_to_scancode(VK_LSHIFT), 0, 0, 0, 0},
                 {L_KEYUP, (long)VK_LWIN, (long)keycode_to_scancode(VK_LWIN), 0, 0, 0, 0},
                 {L_KEYUP, (long)VK_LMENU, (long)keycode_to_scancode(VK_LMENU), 0, 0, 0, 0},
-                {L_KEYUP, (long)VK_ESCAPE, (long)keycode_to_scancode(VK_ESCAPE), 0, 0, 0, 0},
+                // {L_KEYUP, (long)VK_ESCAPE, (long)keycode_to_scancode(VK_ESCAPE), 0, 0, 0, 0},
             };
             context.hotkeyHandler(hotkeys);
         }
