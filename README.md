@@ -20,20 +20,26 @@
 - [x] Web API
 - [x] 手动增加远端设备
 - [x] 控制界面
+- [x] win+alt快捷键切换控制
 - Windows
 1. - [x] 鼠标控制
 2. - [x] 键盘控制
-3. - [x] 剪切板同步
+3. - [ ] 剪切板同步
 4. - [x] 自动提权运行
 5. - [x] 账号登录界面控制
 5. - [x] UAC界面控制
 6. - [x] 设置防火墙
 - Linux
-1. - [ ] 鼠标控制
-2. - [ ] 键盘控制
+1. - [x] 鼠标控制
+2. - [x] 键盘控制
+3. - [ ] 剪切板同步
+- Mac
+1. - [x] 鼠标控制
+2. - [x] 键盘控制
 3. - [ ] 剪切板同步
 
 ### 项目构建
 
 #### Linux Ubuntu
 - `sudo apt install libssl-dev libwayland-dev`
+- `cargo build 之后通过 run.sh脚本运行`
