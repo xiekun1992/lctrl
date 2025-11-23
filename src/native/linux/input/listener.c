@@ -83,6 +83,8 @@ void handle_event(struct libevdev *dev)
                     {
                         if (KEY_RESERVED <= ev_frame->code && ev_frame->code <= KEY_MICMUTE)
                         {
+                            long params[7] = {L_KEYDOWN, (long)ev_frame->code, (long)keycode_to_scancode(ev_frame->code), 0, 0, 0, 0};
+                            listener_context.keyboardHanlder(params);
                             if (ev_frame->code == KEY_LEFTCTRL)
                             {
                                 listener_context.is_lcontrol_down = true;
@@ -103,39 +105,25 @@ void handle_event(struct libevdev *dev)
                             {
                                 listener_context.is_escape_down = true;
                             }
-                            if (listener_context.is_lcontrol_down &&
-                                listener_context.is_lshift_down &&
-                                listener_context.is_lwin_down &&
-                                listener_context.is_lalt_down &&
-                                listener_context.is_escape_down)
-                            {
-                                long hotkeys[5][7] = {
-                                    {L_KEYUP, (long)KEY_LEFTCTRL, (long)keycode_to_scancode(KEY_LEFTCTRL), 0, 0, 0, 0},
-                                    {L_KEYUP, (long)KEY_LEFTSHIFT, (long)keycode_to_scancode(KEY_LEFTSHIFT), 0, 0, 0, 0},
-                                    {L_KEYUP, (long)KEY_LEFTMETA, (long)keycode_to_scancode(KEY_LEFTMETA), 0, 0, 0, 0},
-                                    {L_KEYUP, (long)KEY_LEFTALT, (long)keycode_to_scancode(KEY_LEFTALT), 0, 0, 0, 0},
-                                    {L_KEYUP, (long)KEY_ESC, (long)keycode_to_scancode(KEY_ESC), 0, 0, 0, 0},
-                                };
-                                listener_context.hotkeyHandler(hotkeys);
-                            }
-                            long params[7] = {L_KEYDOWN, (long)ev_frame->code, (long)keycode_to_scancode(ev_frame->code), 0, 0, 0, 0};
-                            listener_context.keyboardHanlder(params);
                         }
                         else
                         {
                             switch (ev_frame->code)
                             {
-                            case BTN_LEFT: {
+                            case BTN_LEFT:
+                            {
                                 long params[5] = {L_MOUSEDOWN, 0, 0, L_MOUSE_BUTTON_LEFT, 0};
                                 listener_context.mouseHanlder(params);
                                 break;
                             }
-                            case BTN_MIDDLE: {
+                            case BTN_MIDDLE:
+                            {
                                 long params[5] = {L_MOUSEDOWN, 0, 0, L_MOUSE_BUTTON_MIDLLE, 0};
                                 listener_context.mouseHanlder(params);
                                 break;
                             }
-                            case BTN_RIGHT: {
+                            case BTN_RIGHT:
+                            {
                                 long params[5] = {L_MOUSEDOWN, 0, 0, L_MOUSE_BUTTON_RIGHT, 0};
                                 listener_context.mouseHanlder(params);
                                 break;
@@ -149,6 +137,25 @@ void handle_event(struct libevdev *dev)
                     {
                         if (KEY_RESERVED <= ev_frame->code && ev_frame->code <= KEY_MICMUTE)
                         {
+                            long params[7] = {L_KEYUP, (long)ev_frame->code, (long)keycode_to_scancode(ev_frame->code), 0, 0, 0, 0};
+                            listener_context.keyboardHanlder(params);
+                            if (
+                                // listener_context.is_lcontrol_down &&
+                                // listener_context.is_lshift_down &&
+                                listener_context.is_lwin_down &&
+                                listener_context.is_lalt_down
+                                // listener_context.is_escape_down
+                            )
+                            {
+                                long hotkeys[][7] = {
+                                    // {L_KEYUP, (long)KEY_LEFTCTRL, (long)keycode_to_scancode(KEY_LEFTCTRL), 0, 0, 0, 0},
+                                    // {L_KEYUP, (long)KEY_LEFTSHIFT, (long)keycode_to_scancode(KEY_LEFTSHIFT), 0, 0, 0, 0},
+                                    {L_KEYUP, (long)KEY_LEFTMETA, (long)keycode_to_scancode(KEY_LEFTMETA), 0, 0, 0, 0},
+                                    {L_KEYUP, (long)KEY_LEFTALT, (long)keycode_to_scancode(KEY_LEFTALT), 0, 0, 0, 0},
+                                    // {L_KEYUP, (long)KEY_ESC, (long)keycode_to_scancode(KEY_ESC), 0, 0, 0, 0},
+                                };
+                                listener_context.hotkeyHandler(hotkeys);
+                            }
                             if (ev_frame->code == KEY_LEFTCTRL)
                             {
                                 listener_context.is_lcontrol_down = false;
@@ -169,24 +176,25 @@ void handle_event(struct libevdev *dev)
                             {
                                 listener_context.is_escape_down = false;
                             }
-                            long params[7] = {L_KEYUP, (long)ev_frame->code, (long)keycode_to_scancode(ev_frame->code), 0, 0, 0, 0};
-                            listener_context.keyboardHanlder(params);
                         }
                         else
                         {
                             switch (ev_frame->code)
                             {
-                            case BTN_LEFT: {
+                            case BTN_LEFT:
+                            {
                                 long params[5] = {L_MOUSEUP, 0, 0, L_MOUSE_BUTTON_LEFT, 0};
                                 listener_context.mouseHanlder(params);
                                 break;
                             }
-                            case BTN_MIDDLE: {
+                            case BTN_MIDDLE:
+                            {
                                 long params[5] = {L_MOUSEUP, 0, 0, L_MOUSE_BUTTON_MIDLLE, 0};
                                 listener_context.mouseHanlder(params);
                                 break;
                             }
-                            case BTN_RIGHT: {
+                            case BTN_RIGHT:
+                            {
                                 long params[5] = {L_MOUSEUP, 0, 0, L_MOUSE_BUTTON_RIGHT, 0};
                                 listener_context.mouseHanlder(params);
                                 break;
@@ -368,8 +376,9 @@ DLL_EXPORT void listener_setBlock(bool block)
         {
             libevdev_grab(listener_context.devs[i], LIBEVDEV_GRAB);
         }
-
-    } else {
+    }
+    else
+    {
         for (int i = 0; i < dev_i; i++)
         {
             libevdev_grab(listener_context.devs[i], LIBEVDEV_UNGRAB);

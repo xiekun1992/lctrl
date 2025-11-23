@@ -273,7 +273,7 @@ extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
             send_to_remote(bytes_to_send.as_slice());
         }
         // 通知受控端将按键释放
-        let hotkeys = slice::from_raw_parts(hotkeys, 5);
+        let hotkeys = slice::from_raw_parts(hotkeys, 2);
         for key in hotkeys {
             let i32_key = [
                 key[0] as i32,
