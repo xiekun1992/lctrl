@@ -1,8 +1,11 @@
 use rusqlite::Connection;
 
-use crate::{global::device::RemoteDevice, input::listener::ControlSide};
+use crate::{
+    global::device::RemoteDevice, input::listener::ControlSide, web_api::dto::ScreenSetting,
+};
 
 use super::state::{Rect, RECT};
+use std::vec::Vec;
 use tracing::{error, info};
 
 pub struct DB {
@@ -12,45 +15,120 @@ pub struct DB {
 impl DB {
     pub fn new() -> Self {
         if let Ok(conn) = Connection::open("lctrl.db") {
-            match conn.execute(
-                "create table if not exists remote_peer (
-                    id integer primary key,
-                    hostname varchar(255),
-                    ip varchar(255),
-                    mac_addr varchar(255),
-                    screen_size_left integer, 
-                    screen_size_right integer, 
-                    screen_size_top integer, 
-                    screen_size_bottom integer, 
-                    side integer,
-                    netmask varchar(255)
-                )",
-                (),
+            match conn.execute_batch(
+                "
+                BEGIN;
+                    create table if not exists remote_peer (
+                        id integer primary key,
+                        hostname varchar(255),
+                        ip varchar(255),
+                        mac_addr varchar(255),
+                        screen_size_left integer, 
+                        screen_size_right integer, 
+                        screen_size_top integer, 
+                        screen_size_bottom integer, 
+                        side integer,
+                        netmask varchar(255)
+                    );
+                    create table if not exists current_device (
+                        id integer primary key,
+                        screen_size_left integer, 
+                        screen_size_right integer, 
+                        screen_size_top integer, 
+                        screen_size_bottom integer
+                    );
+                    create table if not exists screens (
+                        id integer primary key,
+                        screen_size_left integer, 
+                        screen_size_right integer, 
+                        screen_size_top integer, 
+                        screen_size_bottom integer
+                    );
+                COMMIT;
+                ",
             ) {
                 Ok(_) => {}
                 Err(e) => {
-                    error!("create remote_peer table error {:?}", e);
+                    error!("create table error {:?}", e);
                 }
             }
 
-            match conn.execute(
-                "create table if not exists current_device (
-                    id integer primary key,
-                    screen_size_left integer, 
-                    screen_size_right integer, 
-                    screen_size_top integer, 
-                    screen_size_bottom integer
-                )",
-                (),
-            ) {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("create current_device table error {:?}", e);
-                }
-            }
             DB { conn }
         } else {
             panic!("open database lctrl.db failed");
+        }
+    }
+
+    pub fn delete_screens(&self) {
+        match self.conn.execute("delete from screens", ()) {
+            Ok(r) => {
+                info!("delete screens affected rows {}", r);
+            }
+            Err(e) => {
+                error!("delete screens error {:?}", e);
+            }
+        }
+    }
+    pub fn set_screens(&self, screens: &Vec<Rect>) {
+        self.delete_screens();
+        for screen in screens.iter() {
+            match self.conn.execute(
+                "
+                        insert into screens(
+                            screen_size_left, 
+                            screen_size_right, 
+                            screen_size_top, 
+                            screen_size_bottom
+                        ) values (?1, ?2, ?3, ?4)
+                ",
+                (&screen.left, &screen.right, &screen.top, &screen.bottom),
+            ) {
+                Ok(s) => {
+                    println!("insert screens affected rows {}", s);
+                }
+                Err(e) => {
+                    println!("insert screens error {:?}", e);
+                }
+            }
+        }
+    }
+
+    pub fn get_screens(&self) -> Vec<Rect> {
+        match self.conn.prepare(
+            r#"select 
+                    screen_size_left, 
+                    screen_size_right, 
+                    screen_size_top, 
+                    screen_size_bottom
+                from screens"#,
+        ) {
+            Ok(mut stmt) => {
+                if let Ok(iter) = stmt.query_map([], |row| {
+                    // println!("{:?}", row);
+                    Ok(Rect {
+                        left: row.get(0).unwrap_or(0),
+                        right: row.get(1).unwrap_or(800),
+                        top: row.get(2).unwrap_or(0),
+                        bottom: row.get(3).unwrap_or(600),
+                    })
+                }) {
+                    let mut screens = vec![];
+                    for res in iter {
+                        match res {
+                            Ok(r) => screens.push(r),
+                            Err(_e) => {}
+                        }
+                    }
+                    screens
+                } else {
+                    info!("get_screens query_map failed");
+                    vec![]
+                }
+            }
+            Err(_e) => {
+                error!("get_screens select failed");
+                vec![]
+            }
         }
     }
 
@@ -93,7 +171,6 @@ impl DB {
             }
         }
     }
-
     pub fn get_remote_peer(&self) -> (Option<RemoteDevice>, ControlSide) {
         match self.conn.prepare(
             r#"select 
@@ -158,7 +235,6 @@ impl DB {
             }
         }
     }
-
     pub fn delete_remote_peer(&self) {
         match self.conn.execute("delete from remote_peer", ()) {
             Ok(s) => {

@@ -72,20 +72,10 @@ fn default_screens() -> Vec<Rect> {
 
 impl DeviceInfo {
     pub fn new() -> DeviceInfo {
-        let mut count = 0;
-        let zero_screens = vec![];
-        let screens = unsafe {
-            let screens_rects = get_screens(&mut count);
-            if screens_rects.is_null() || count == 0 {
-                zero_screens.as_slice()
-            } else {
-                std::slice::from_raw_parts(screens_rects, count as usize)
-            }
-        };
         DeviceInfo {
             hostname: String::from(gethostname().to_str().unwrap_or("unknown hostname")),
             ifs: get_interfaces(),
-            screens: screens.to_vec(),
+            screens: vec![],
             auto_discover: true,
         }
     }

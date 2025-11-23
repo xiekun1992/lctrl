@@ -122,6 +122,11 @@ impl State {
                 std::slice::from_raw_parts(screens_rects, count as usize)
             }
         };
+        let screens = if count == 0 {
+            db.get_screens()
+        } else {
+            screens.to_vec()
+        };
         info!("screens: {:#?}, count: {:?}", screens, count);
         let (remote_peer, side) = db.get_remote_peer();
         let remotes = Vec::new();
@@ -129,12 +134,14 @@ impl State {
         // if let Some(peer) = remote_peer.clone() {
         //     remotes.push(peer);
         // }
+        let mut cur_device = DeviceInfo::new();
+        cur_device.screens = screens.clone();
         State {
             remotes: Mutex::new(remotes),
             manual_remotes: Mutex::new(manual_remotes),
-            cur_device: DeviceInfo::new(),
+            cur_device,
             screen_size,
-            screens: screens.to_vec(),
+            screens,
             remote_peer,
             side,
             db,

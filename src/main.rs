@@ -2,8 +2,8 @@ use std::env;
 
 // use chrono::Local;
 // use env_logger::Builder;
-use global::{db, state::RECT};
-use tracing::Level;
+use global::{db, state::Rect, state::RECT};
+// use tracing::Level;
 use tracing::{error, info};
 
 mod discover;
@@ -12,10 +12,10 @@ mod input;
 mod system_service;
 mod web_api;
 
-// #[link(name = "libcapture")]
+#[cfg(target_os = "linux")]
 extern "C" {
-    #[cfg(target_os = "linux")]
     fn get_screen_size() -> RECT;
+    fn get_screens(count: *mut i32) -> *const Rect;
 }
 
 fn main() -> Result<(), i32> {
@@ -52,9 +52,22 @@ fn main() -> Result<(), i32> {
     #[cfg(target_os = "linux")]
     if let Some(_) = args.iter().find(|arg| (**arg).eq("--get-screen-size")) {
         let rect = unsafe { get_screen_size() };
-        info!("{:?}", rect);
+        info!("screens area {:?}", rect);
+
+        let screens = unsafe {
+            let mut count = 0;
+            let screens_rects = get_screens(&mut count);
+            if screens_rects.is_null() || count == 0 {
+                vec![]
+            } else {
+                std::slice::from_raw_parts(screens_rects, count as usize).to_vec()
+            }
+        };
+        info!("screens {:?}", screens);
+
         let conn = db::DB::new();
         conn.set_current_device(&rect);
+        conn.set_screens(&screens);
         // println!("{:?}", conn.get_current_device());
     } else if let Some(_) = args.iter().find(|arg| (**arg).eq("--run_as_app")) {
         global::init();

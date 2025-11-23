@@ -22,7 +22,6 @@ impl UDPServer {
         }
     }
     pub fn recv(&self, cb: fn(&[u32])) {
-        // let dev = DeviceInfo::new();
         let mut buf = [0; 512];
         loop {
             if let Ok((recv_size, _rinfo)) = self.socket.recv_from(&mut buf) {
