@@ -19,7 +19,11 @@ extern "C" {
 #[cfg(target_os = "windows")]
 pub fn add_windows_firewall_rule() {
     if let Ok(app_path) = env::current_exe() {
-        let app_name = app_path.file_name().unwrap().to_str().unwrap();
+        let app_name = app_path
+            .file_name()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default();
         let cmd = format!(
             "netsh advfirewall firewall delete rule name=\"{}\"",
             app_name

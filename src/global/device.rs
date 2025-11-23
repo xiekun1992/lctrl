@@ -39,11 +39,24 @@ pub struct RemoteDevice {
 
 impl RemoteDevice {
     pub fn to_json(&self) -> String {
-        serde_json::to_string(&self).unwrap()
+        serde_json::to_string(&self).unwrap_or("".to_string())
     }
     pub fn from_json(json_str: String) -> RemoteDevice {
         // println!("remote device from json {}", json_str);
-        let remote: RemoteDevice = serde_json::from_str(&json_str).unwrap();
+        let remote: RemoteDevice = serde_json::from_str(&json_str).unwrap_or(RemoteDevice {
+            hostname: "".to_string(),
+            ip: "".to_string(),
+            netmask: "".to_string(),
+            mac_addr: "".to_string(),
+            screen_size: Rect {
+                left: 0,
+                top: 0,
+                right: 800,
+                bottom: 600,
+            },
+            screens: vec![],
+            alive_timestamp: 0,
+        });
         remote
     }
 }
@@ -70,7 +83,7 @@ impl DeviceInfo {
             }
         };
         DeviceInfo {
-            hostname: String::from(gethostname().to_str().unwrap()),
+            hostname: String::from(gethostname().to_str().unwrap_or("unknown hostname")),
             ifs: get_interfaces(),
             screens: screens.to_vec(),
             auto_discover: true,

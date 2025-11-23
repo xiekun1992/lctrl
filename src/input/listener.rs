@@ -1,6 +1,6 @@
 use super::SERVER;
 use crate::global::state::STATE;
-use tracing::info;
+use tracing::{error, info};
 // use tracing::debug;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -55,13 +55,18 @@ fn send_to_remote(ev: &[i32]) {
             slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>());
         // println!("{:?}", bytes);
         {
-            match &STATE.lock().unwrap().get_remote_peer() {
-                Some(peer) => {
-                    let addr = format!("{}:11233", peer.ip);
-                    // debug!("{:?}", ev);
-                    SERVER.send(&bytes, &addr);
+            match &STATE.lock() {
+                Ok(s) => match s.get_remote_peer() {
+                    Some(peer) => {
+                        let addr = format!("{}:11233", peer.ip);
+                        // debug!("{:?}", ev);
+                        SERVER.send(&bytes, &addr);
+                    }
+                    None => {}
+                },
+                Err(_e) => {
+                    error!("send_to_remote state lock failed");
                 }
-                None => {}
             }
         }
     }

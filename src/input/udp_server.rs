@@ -1,5 +1,6 @@
 use std::net::UdpSocket;
 use std::{mem, slice, str};
+use tracing::info;
 
 pub struct UDPServer {
     socket: UdpSocket,
@@ -9,11 +10,15 @@ pub struct UDPServer {
 
 impl UDPServer {
     pub fn new(ip: String, port: u16) -> UDPServer {
-        let socket = UdpSocket::bind(format!("{ip}:{port}")).unwrap();
-        UDPServer {
-            socket,
-            _ip: ip,
-            _port: port,
+        if let Ok(socket) = UdpSocket::bind(format!("{ip}:{port}")) {
+            info!("UDP server bind to {}:{}", ip, port);
+            UDPServer {
+                socket,
+                _ip: ip,
+                _port: port,
+            }
+        } else {
+            panic!("UDP server bind to {}:{} failed", ip, port);
         }
     }
     pub fn recv(&self, cb: fn(&[u32])) {

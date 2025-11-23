@@ -160,10 +160,18 @@ impl State {
     }
 
     pub fn get_remote(&self) -> Vec<RemoteDevice> {
-        self.remotes.lock().unwrap().clone()
+        if let Ok(remotes) = self.remotes.lock() {
+            remotes.clone()
+        } else {
+            vec![]
+        }
     }
     pub fn get_manual_remote(&self) -> Vec<RemoteDevice> {
-        self.manual_remotes.lock().unwrap().clone()
+        if let Ok(manual_remotes) = self.manual_remotes.lock() {
+            manual_remotes.clone()
+        } else {
+            vec![]
+        }
     }
 
     pub fn add_manual_remote(&mut self, manual_remote: RemoteDevice) {
@@ -200,13 +208,15 @@ impl State {
                     }
                 };
                 let found = remotes.iter_mut().find(|item| item.ip.eq(&remote.ip));
-                if found.is_none() {
-                    remote.alive_timestamp = timestamp;
-                    remotes.push(remote.clone());
-                } else {
-                    found.unwrap().alive_timestamp = timestamp;
+                match found {
+                    Some(r) => {
+                        r.alive_timestamp = timestamp;
+                    }
+                    None => {
+                        remote.alive_timestamp = timestamp;
+                        remotes.push(remote.clone());
+                    }
                 }
-                // println!("{:?}, {:?}", remotes, self.remote_peer);
             }
             Err(_e) => {}
         }
@@ -225,8 +235,9 @@ impl State {
     }
 
     pub fn del_remote(&self, ip: String) {
-        let mut remotes = self.remotes.lock().unwrap();
-        remotes.retain(|item| item.ip != ip);
+        if let Ok(mut remotes) = self.remotes.lock() {
+            remotes.retain(|item| item.ip != ip);
+        }
     }
 
     pub fn find_remote_by_ip(&self, ip: &str) -> Option<RemoteDevice> {

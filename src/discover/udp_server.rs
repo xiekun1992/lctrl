@@ -4,6 +4,7 @@ use std::{net::UdpSocket, thread};
 
 use crate::global::device::RemoteDevice;
 use crate::global::state::STATE;
+use tracing::info;
 
 pub struct UDPServer {
     socket: UdpSocket,
@@ -13,34 +14,41 @@ pub struct UDPServer {
 
 impl UDPServer {
     pub fn new(ip: String, port: u16) -> UDPServer {
-        let socket = UdpSocket::bind(format!("{ip}:{port}")).unwrap();
-        // socket.set_nonblocking(true).unwrap();
-        socket.set_broadcast(true).unwrap();
-        UDPServer {
-            socket,
-            _ip: ip,
-            port,
+        if let Ok(socket) = UdpSocket::bind(format!("{ip}:{port}")) {
+            if let Ok(_) = socket.set_broadcast(true) {
+                info!("UDP server bind to {}:{}", ip, port);
+            } else {
+                panic!("set broadcast failed");
+            }
+            UDPServer {
+                socket,
+                _ip: ip,
+                port,
+            }
+        } else {
+            panic!("UDP server bind to {}:{} failed", ip, port);
         }
     }
     pub fn recv(&self) {
         let mut buf = [0; 64 * 1024];
         loop {
-            let (data, rinfo) = self.socket.recv_from(&mut buf).unwrap();
-            let remote = RemoteDevice::from_json(str::from_utf8(&buf[..data]).unwrap().to_string());
-            // println!("{:?}", remote);
-            match STATE.lock() {
-                Ok(mut state) => {
-                    let dev = &state.cur_device;
-                    // println!("{:?}, {:?}", dev, remote);
-                    if dev
-                        .ifs
-                        .iter()
-                        .all(|interface| interface.addr.to_string() != rinfo.ip().to_string())
-                    {
-                        state.add_remote(remote);
+            if let Ok((data, rinfo)) = self.socket.recv_from(&mut buf) {
+                if let Ok(s) = str::from_utf8(&buf[..data]) {
+                    let remote = RemoteDevice::from_json(s.to_string());
+                    // println!("{:?}", remote);
+                    match STATE.lock() {
+                        Ok(mut state) => {
+                            let dev = &state.cur_device;
+                            // println!("{:?}, {:?}", dev, remote);
+                            if dev.ifs.iter().all(|interface| {
+                                interface.addr.to_string() != rinfo.ip().to_string()
+                            }) {
+                                state.add_remote(remote);
+                            }
+                        }
+                        Err(_e) => {}
                     }
                 }
-                Err(_e) => {}
             }
         }
     }

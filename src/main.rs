@@ -23,8 +23,6 @@ fn main() -> Result<(), i32> {
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     // 将日志文件添加到 tracing_subscriber 中
 
-    // let subscriber = tracing_subscriber::registry().fmt(f).
-    // tracing::subscriber::set_global_default(subscriber).unwrap();
     tracing_subscriber::fmt()
         .with_target(true)
         // .with_ansi(true)
