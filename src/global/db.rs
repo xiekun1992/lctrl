@@ -1,11 +1,16 @@
 use rusqlite::Connection;
 
 use crate::{
-    global::device::RemoteDevice, input::listener::ControlSide, web_api::dto::ScreenSetting,
+    global::{
+        device::RemoteDevice,
+        setting::{self, Setting},
+    },
+    input::listener::ControlSide,
+    web_api::dto::ScreenSetting,
 };
 
 use super::state::{Rect, RECT};
-use std::vec::Vec;
+use std::{any::Any, vec::Vec};
 use tracing::{error, info};
 
 pub struct DB {
@@ -44,6 +49,14 @@ impl DB {
                         screen_size_top integer, 
                         screen_size_bottom integer
                     );
+                    create table if not exists setting (
+                        id integer primary key,
+                        auto_discover integer,
+                        scale_factor decimal,
+                        cursor_across_screens integer,
+                        mouse_wheel_style integer,
+                        enable_control integer
+                    );
                 COMMIT;
                 ",
             ) {
@@ -59,15 +72,96 @@ impl DB {
         }
     }
 
-    pub fn delete_screens(&self) {
-        match self.conn.execute("delete from screens", ()) {
-            Ok(r) => {
-                info!("delete screens affected rows {}", r);
+    pub fn initialize(&self) {
+        self.init_setting();
+    }
+
+    pub fn init_setting(&self) {
+        let setting = self.get_setting();
+        self.set_setting(&setting);
+        info!("initialize setting {:?}", setting);
+    }
+
+    pub fn set_setting(&self, setting: &Setting) {
+        self.conn
+            .execute("delete from setting", ())
+            .unwrap_or_default();
+        match self.conn.execute(
+            "
+                    insert into setting (
+                        auto_discover integer,
+                        scale_factor decimal,
+                        cursor_across_screens integer,
+                        mouse_wheel_style integer,
+                        enable_control integer
+                    ) values (?1, ?2, ?3, ?4, ?5)
+                ",
+            (
+                &setting.auto_discover,
+                &setting.scale_factor,
+                &setting.cursor_across_screens,
+                setting.mouse_wheel_style.clone() as i32,
+                &setting.enable_control,
+            ),
+        ) {
+            Ok(s) => {
+                println!("insert setting affected rows {}", s);
             }
             Err(e) => {
-                error!("delete screens error {:?}", e);
+                println!("insert setting error {:?}", e);
             }
         }
+    }
+
+    pub fn get_setting(&self) -> Setting {
+        match self.conn.prepare(
+            r#"select 
+                    auto_discover,
+                    scale_factor,
+                    cursor_across_screens,
+                    mouse_wheel_style,
+                    enable_control
+                from setting"#,
+        ) {
+            Ok(mut stmt) => {
+                if let Ok(mut iter) = stmt.query_map([], |row| {
+                    // println!("{:?}", row);
+                    Ok(Setting {
+                        auto_discover: row.get(0).unwrap_or(true),
+                        scale_factor: row.get(1).unwrap_or(1.0),
+                        cursor_across_screens: row.get(2).unwrap_or(true),
+                        mouse_wheel_style: match row.get::<_, i32>(3).unwrap_or(0) {
+                            0 => setting::MouseWheelStyle::Traditional,
+                            1 => setting::MouseWheelStyle::Natural,
+                            _ => setting::MouseWheelStyle::Traditional,
+                        },
+                        screen_setting: ScreenSetting::new(),
+                        enable_control: row.get(4).unwrap_or(true),
+                    })
+                }) {
+                    match iter.next() {
+                        Some(res) => match res {
+                            Ok(s) => s,
+                            Err(_e) => Setting::default(),
+                        },
+                        _ => Setting::default(),
+                    }
+                } else {
+                    info!("get_setting query_map failed");
+                    Setting::default()
+                }
+            }
+            Err(_e) => {
+                error!("get_setting select failed");
+                Setting::default()
+            }
+        }
+    }
+
+    pub fn delete_screens(&self) {
+        self.conn
+            .execute("delete from screens", ())
+            .unwrap_or_default();
     }
     pub fn set_screens(&self, screens: &Vec<Rect>) {
         self.delete_screens();

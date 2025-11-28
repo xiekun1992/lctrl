@@ -91,6 +91,8 @@ pub struct State {
 impl State {
     fn new() -> State {
         let db = DB::new();
+        db.initialize();
+
         let mut screen_size = Rect::new();
         let s = unsafe { get_screen_size() };
         let s = if s.left == s.right && s.top == s.bottom {
@@ -136,6 +138,8 @@ impl State {
         // }
         let mut cur_device = DeviceInfo::new();
         cur_device.screens = screens.clone();
+
+        let setting = db.get_setting();
         State {
             remotes: Mutex::new(remotes),
             manual_remotes: Mutex::new(manual_remotes),
@@ -145,7 +149,7 @@ impl State {
             remote_peer,
             side,
             db,
-            setting: Setting::new(),
+            setting,
         }
     }
 
@@ -264,6 +268,11 @@ impl State {
 
     pub fn get_setting(&self) -> Setting {
         self.setting.clone()
+    }
+
+    pub fn set_setting(&mut self, setting: Setting) {
+        self.db.set_setting(&setting);
+        self.setting = setting;
     }
 
     pub fn set_auto_discover(&mut self, active: bool) {

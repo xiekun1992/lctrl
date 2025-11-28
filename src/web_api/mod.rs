@@ -65,6 +65,7 @@ pub async fn web_main() -> std::io::Result<()> {
                     .service(manual_peer::put)
                     .service(setting::set_auto_discover)
                     .service(setting::get_setting)
+                    .service(setting::set_setting)
                     .service(setting::set_screens),
             )
             // .service(frontend::get)

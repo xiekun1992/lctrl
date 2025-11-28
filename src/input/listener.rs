@@ -1,5 +1,5 @@
 use super::SERVER;
-use crate::global::state::STATE;
+use crate::global::state::{self, STATE};
 use tracing::{error, info};
 // use tracing::debug;
 use serde::{Deserialize, Serialize};
@@ -180,6 +180,9 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                     MOUSE_BUTTON_HOLD = false;
                     send_to_remote(ev);
                 }
+                MOUSE_WHEEL => {
+                    send_to_remote(ev);
+                }
                 _ => {
                     send_to_remote(ev);
                 }
@@ -197,6 +200,21 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                     match SIDE {
                         ControlSide::LEFT => {
                             if ev[1] <= SELF_SCREEN_SIZE[0] {
+                                match STATE.lock() {
+                                    Ok(state) => {
+                                        if !state.get_setting().enable_control {
+                                            return;
+                                        }
+                                        if !state.get_setting().cursor_across_screens {
+                                            return;
+                                        }
+                                    }
+                                    Err(_e) => {
+                                        error!("mouse_handler state lock failed");
+                                        return;
+                                    }
+                                }
+
                                 listener_setBlock(1);
                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
                                 POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
@@ -205,6 +223,21 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                         }
                         ControlSide::RIGHT => {
                             if ev[1] >= SELF_SCREEN_SIZE[1] {
+                                match STATE.lock() {
+                                    Ok(state) => {
+                                        if !state.get_setting().enable_control {
+                                            return;
+                                        }
+                                        if !state.get_setting().cursor_across_screens {
+                                            return;
+                                        }
+                                    }
+                                    Err(_e) => {
+                                        error!("mouse_handler state lock failed");
+                                        return;
+                                    }
+                                }
+
                                 listener_setBlock(1);
                                 POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
                                 POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
@@ -213,6 +246,21 @@ extern "C" fn mouse_handler(ev: *const c_long) {
                         }
                         ControlSide::TOP => {
                             if ev[2] <= SELF_SCREEN_SIZE[2] {
+                                match STATE.lock() {
+                                    Ok(state) => {
+                                        if !state.get_setting().enable_control {
+                                            return;
+                                        }
+                                        if !state.get_setting().cursor_across_screens {
+                                            return;
+                                        }
+                                    }
+                                    Err(_e) => {
+                                        error!("mouse_handler state lock failed");
+                                        return;
+                                    }
+                                }
+
                                 listener_setBlock(1);
                                 POS_IN_REMOTE_SCREEN[0] = ev[1] as f32;
                                 POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
@@ -268,6 +316,18 @@ extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
             let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
             mouse_move(center_x, center_y);
         } else {
+            match STATE.lock() {
+                Ok(state) => {
+                    if !state.get_setting().enable_control {
+                        return;
+                    }
+                }
+                Err(_e) => {
+                    error!("hotkey_handler state lock failed");
+                    return;
+                }
+            }
+
             BLOCK = true;
             listener_setBlock(1);
             POS_IN_REMOTE_SCREEN[0] = (REMOTE_SCREEN_SIZE[1] - REMOTE_SCREEN_SIZE[0]) / 2.0;

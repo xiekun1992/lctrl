@@ -42,3 +42,14 @@ async fn get_setting() -> impl Responder {
         Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
     }
 }
+
+#[put("/setting")]
+async fn set_setting(body: web::Json<crate::global::setting::Setting>) -> impl Responder {
+    match STATE.try_lock() {
+        Ok(mut state) => {
+            state.set_setting(body.0.clone());
+            HttpResponse::Ok().json(())
+        }
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
+    }
+}
