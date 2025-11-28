@@ -2,34 +2,11 @@
 
 DLL_EXPORT bool is_run_as_admin()
 {
-    // BOOL isAdmin = FALSE;
-    // PSID adminGroup = NULL;
-    // SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-
-    // if (AllocateAndInitializeSid(&ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &adminGroup))
-    // {
-    //     CheckTokenMembership(NULL, adminGroup, &isAdmin);
-    //     FreeSid(adminGroup);
-    // }
     return true;
 }
 
 DLL_EXPORT void run_as_admin()
 {
-    // TCHAR szPath[MAX_PATH];
-    // if (GetModuleFileName(NULL, szPath, ARRAYSIZE(szPath)))
-    // {
-    //     SHELLEXECUTEINFO sei = {sizeof(sei)};
-    //     sei.lpVerb = L"runas";
-    //     sei.lpFile = szPath;
-    //     sei.hwnd = NULL;
-    //     sei.nShow = SW_NORMAL;
-    //     if (ShellExecuteEx(&sei))
-    //     {
-    //         // The program has been successfully started with elevated privileges.
-    //         ExitProcess(0);
-    //     }
-    // }
 }
 
 DLL_EXPORT RECT get_screen_size()
@@ -78,4 +55,26 @@ DLL_EXPORT RECT get_screen_size()
         rect.bottom = height;
     }
     return rect;
+}
+
+RECT screens_rect[16];
+
+DLL_EXPORT RECT *get_screens(int *count)
+{
+    CGDirectDisplayID displays[10];
+    int displayCount = 0;
+    CGError err = CGGetActiveDisplayList(10, displays, &displayCount);
+    if (err == kCGErrorSuccess)
+    {
+        for (int i = 0; i < displayCount; ++i)
+        {
+            CGRect bounds = CGDisplayBounds(displays[i]);
+            screens_rect[i].left = bounds.origin.x;
+            screens_rect[i].top = bounds.origin.y;
+            screens_rect[i].right = bounds.origin.x + bounds.size.width;
+            screens_rect[i].bottom = bounds.origin.y + bounds.size.height;
+        }
+        *count = displayCount;
+    }
+    return &screens_rect;
 }
