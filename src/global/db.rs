@@ -87,15 +87,15 @@ impl DB {
             .execute("delete from setting", ())
             .unwrap_or_default();
         match self.conn.execute(
-            "
+            r#"
                     insert into setting (
-                        auto_discover integer,
-                        scale_factor decimal,
-                        cursor_across_screens integer,
-                        mouse_wheel_style integer,
-                        enable_control integer
+                        auto_discover,
+                        scale_factor,
+                        cursor_across_screens,
+                        mouse_wheel_style,
+                        enable_control
                     ) values (?1, ?2, ?3, ?4, ?5)
-                ",
+                "#,
             (
                 &setting.auto_discover,
                 &setting.scale_factor,
@@ -167,14 +167,14 @@ impl DB {
         self.delete_screens();
         for screen in screens.iter() {
             match self.conn.execute(
-                "
+                r#"
                         insert into screens(
                             screen_size_left, 
                             screen_size_right, 
                             screen_size_top, 
                             screen_size_bottom
                         ) values (?1, ?2, ?3, ?4)
-                ",
+                "#,
                 (&screen.left, &screen.right, &screen.top, &screen.bottom),
             ) {
                 Ok(s) => {
