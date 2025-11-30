@@ -16,6 +16,9 @@ pub struct Setting {
     pub scale_factor: f32,
     pub mouse_wheel_style: MouseWheelStyle,
     pub enable_control: bool,
+    pub heartbeat_interval: u64,
+    pub alive_interval: u64,
+    pub enable_wol: bool,
 }
 
 impl Setting {
@@ -26,7 +29,10 @@ impl Setting {
             scale_factor: 1.0,           // 鼠标移动的缩放因子
             mouse_wheel_style: MouseWheelStyle::Traditional,
             screen_setting: ScreenSetting::new(),
-            enable_control: true, // 是否允许控制远程设备
+            enable_control: true,    // 是否允许控制远程设备
+            heartbeat_interval: 500, // 心跳间隔，单位毫秒
+            alive_interval: 5,       // 设备离线判定时间，单位秒
+            enable_wol: true,        // 是否启用WOL功能
         }
     }
 }

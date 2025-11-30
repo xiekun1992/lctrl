@@ -55,7 +55,10 @@ impl DB {
                         scale_factor decimal,
                         cursor_across_screens integer,
                         mouse_wheel_style integer,
-                        enable_control integer
+                        enable_control integer,
+                        heartbeat_interval integer,
+                        alive_interval integer,
+                        enable_wol integer
                     );
                 COMMIT;
                 ",
@@ -93,8 +96,11 @@ impl DB {
                         scale_factor,
                         cursor_across_screens,
                         mouse_wheel_style,
-                        enable_control
-                    ) values (?1, ?2, ?3, ?4, ?5)
+                        enable_control,
+                        heartbeat_interval,
+                        alive_interval,
+                        enable_wol
+                    ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
                 "#,
             (
                 &setting.auto_discover,
@@ -102,6 +108,9 @@ impl DB {
                 &setting.cursor_across_screens,
                 setting.mouse_wheel_style.clone() as i32,
                 &setting.enable_control,
+                &setting.heartbeat_interval,
+                &setting.alive_interval,
+                &setting.enable_wol,
             ),
         ) {
             Ok(s) => {
@@ -120,7 +129,9 @@ impl DB {
                     scale_factor,
                     cursor_across_screens,
                     mouse_wheel_style,
-                    enable_control
+                    enable_control,
+                    heartbeat_interval,
+                    enable_wol
                 from setting"#,
         ) {
             Ok(mut stmt) => {
@@ -137,6 +148,9 @@ impl DB {
                         },
                         screen_setting: ScreenSetting::new(),
                         enable_control: row.get(4).unwrap_or(true),
+                        heartbeat_interval: row.get(5).unwrap_or(500),
+                        alive_interval: row.get(6).unwrap_or(5),
+                        enable_wol: row.get(7).unwrap_or(true),
                     })
                 }) {
                     match iter.next() {
