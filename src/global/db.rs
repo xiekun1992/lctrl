@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::state::{Rect, RECT};
-use std::{any::Any, vec::Vec};
+use std::vec::Vec;
 use tracing::{error, info};
 
 pub struct DB {

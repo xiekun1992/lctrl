@@ -3,11 +3,7 @@ use netdev::mac::MacAddr;
 use serde::{Deserialize, Serialize};
 use std::{net::Ipv4Addr, vec};
 
-use super::state::{Rect, RECT};
-
-extern "C" {
-    fn get_screens(count: *mut i32) -> *const Rect;
-}
+use super::state::Rect;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Interface {

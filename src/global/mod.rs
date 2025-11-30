@@ -1,8 +1,5 @@
-use std::{thread, time::Duration};
-
-use tracing::info;
-
 use self::{device::get_interfaces, state::STATE};
+use std::{thread, time::Duration};
 
 pub mod db;
 pub mod device;

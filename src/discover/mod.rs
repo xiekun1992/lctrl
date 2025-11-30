@@ -5,7 +5,7 @@ use std::{
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use udp_server::UDPServer;
 
 use crate::global::state::STATE;

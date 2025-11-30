@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_int, c_long},
+    ffi::c_int,
     sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
 };
