@@ -9,8 +9,14 @@ use std::{
     time::Duration,
 };
 
-type CInputHandler = extern "C" fn(*const c_long);
-type HotKeyHandler = extern "C" fn(*const [c_long; 7]);
+#[cfg(any(target_os = "macos"))]
+type InputType = c_int;
+
+#[cfg(any(target_os = "windows", target_os = "linux"))]
+type InputType = c_long;
+
+type CInputHandler = extern "C" fn(*const InputType);
+type HotKeyHandler = extern "C" fn(*const [InputType; 7]);
 // #[link(name = "libcapture")]
 extern "C" {
     fn listener_init(
@@ -72,7 +78,7 @@ fn send_to_remote(ev: &[i32]) {
     }
 }
 
-extern "C" fn mouse_handler(ev: *const c_long) {
+extern "C" fn mouse_handler(ev: *const InputType) {
     unsafe {
         if !IS_REMOTE_ALIVE {
             return;
@@ -282,7 +288,7 @@ extern "C" fn mouse_handler(ev: *const c_long) {
     }
 }
 
-extern "C" fn keyboard_handler(ev: *const c_long) {
+extern "C" fn keyboard_handler(ev: *const InputType) {
     unsafe {
         if !IS_REMOTE_ALIVE {
             return;
@@ -304,7 +310,7 @@ extern "C" fn keyboard_handler(ev: *const c_long) {
     }
 }
 
-extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
+extern "C" fn hotkey_handler(hotkeys: *const [InputType; 7]) {
     info!("unblock hotkey triggered");
     thread::sleep(Duration::from_millis(100)); // 让控制端有时间处理完按键释放事件，防止热建触发时按键还按着
     unsafe {

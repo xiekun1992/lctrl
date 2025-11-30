@@ -1,7 +1,7 @@
 #include "listener.h"
 
 struct Listener context;
-static CGPoint fixedMousePosition = {10, 10};
+static CGPoint fixedMousePosition = {-1, -1};
 int prevDeltaX = 0, prevDeltaY = 0;
 int wheeling = 0;
 static CGEventFlags lastFlags = 0;
@@ -13,6 +13,7 @@ void handleHIDInput(void *context1, IOReturn result, void *sender, IOHIDValueRef
     uint32_t usagePage = IOHIDElementGetUsagePage(element);
     uint32_t usage = IOHIDElementGetUsage(element);
     int deltaX = 0, deltaY = 0;
+    // printf("deltaX=%d, deltaY=%d\n", deltaX, deltaY);
     if (usagePage == kHIDPage_GenericDesktop)
     {
         if (usage == kHIDUsage_GD_X)
@@ -52,12 +53,14 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
                 printf("Command right键按下\n");
                 int params[7] = {L_KEYDOWN, (int)kVK_Command, (int)keys[kVK_Command]};
                 context.keyboardHanlder(params);
+                context.is_lwin_down = true;
             }
             else
             {
                 printf("Command right键释放\n");
                 int params[7] = {L_KEYUP, (int)kVK_Command, (int)keys[kVK_Command]};
                 context.keyboardHanlder(params);
+                context.is_lwin_down = false;
             }
         }
         if (changedFlags & kCGEventFlagMaskShift)
@@ -67,12 +70,14 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
                 printf("shift left键按下\n");
                 int params[7] = {L_KEYDOWN, (int)kVK_Shift, (int)keys[kVK_Shift]};
                 context.keyboardHanlder(params);
+                context.is_lshift_down = true;
             }
             else
             {
                 printf("shift left键释放\n");
                 int params[7] = {L_KEYUP, (int)kVK_Shift, (int)keys[kVK_Shift]};
                 context.keyboardHanlder(params);
+                context.is_lshift_down = false;
             }
         }
         if (changedFlags & kCGEventFlagMaskAlphaShift)
@@ -97,12 +102,14 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
                 printf("control left键按下\n");
                 int params[7] = {L_KEYDOWN, (int)kVK_Control, (int)keys[kVK_Control]};
                 context.keyboardHanlder(params);
+                context.is_lcontrol_down = true;
             }
             else
             {
                 printf("control left键释放\n");
                 int params[7] = {L_KEYUP, (int)kVK_Control, (int)keys[kVK_Control]};
                 context.keyboardHanlder(params);
+                context.is_lcontrol_down = false;
             }
         }
         if (changedFlags & kCGEventFlagMaskAlternate)
@@ -112,16 +119,35 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
                 printf("Alternate left键按下\n");
                 int params[7] = {L_KEYDOWN, (int)kVK_Option, (int)keys[kVK_Option]};
                 context.keyboardHanlder(params);
+                context.is_lalt_down = true;
             }
             else
             {
                 printf("Alternate left键释放\n");
                 int params[7] = {L_KEYUP, (int)kVK_Option, (int)keys[kVK_Option]};
                 context.keyboardHanlder(params);
+                context.is_lalt_down = false;
             }
         }
 
         lastFlags = currentFlags; // 更新状态
+
+        printf("hotkey down: %d %d %d %d\n", context.is_lcontrol_down, context.is_lshift_down, context.is_lwin_down, context.is_lalt_down);
+        if (
+            // context.is_lcontrol_down &&
+            context.is_lwin_down &&
+            context.is_lalt_down)
+        {
+            printf("hotkeys pressed\n");
+            int hotkeys[][7] = {
+                // {L_KEYUP, (int)kVK_Control, (int)keys[kVK_Control], 0, 0, 0, 0},
+                {L_KEYUP, (int)kVK_Command, (int)keys[kVK_Command], 0, 0, 0, 0},
+                {L_KEYUP, (int)kVK_Option, (int)keys[kVK_Option], 0, 0, 0, 0},
+                // {L_KEYUP, (int)kVK_Shift, (int)keys[kVK_Shift], 0, 0, 0, 0},
+                // {L_KEYUP, (int)kVK_Escape, (int)keys[kVK_Escape], 0, 0, 0, 0},
+            };
+            context.hotkeyHandler(hotkeys);
+        }
     }
     CGPoint mouseLocation = CGEventGetLocation(event);
     int x = mouseLocation.x, y = mouseLocation.y;
@@ -141,7 +167,7 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
     {
         y = (int)(mouseLocation.y);
     }
-    printf("context.blocking=%d, mouseLocation=%f %f, %ld %ld\n", context.blocking, mouseLocation.x, mouseLocation.y, (int)x, (int)y);
+    // printf("context.blocking=%d, mouseLocation=%f %f, %ld %ld\n", context.blocking, mouseLocation.x, mouseLocation.y, (int)x, (int)y);
     switch (type)
     {
     case kCGEventKeyDown:
@@ -233,8 +259,11 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
     }
     if (context.blocking)
     {
-        fixedMousePosition.x = mouseLocation.x;
-        fixedMousePosition.y = mouseLocation.y;
+        if (fixedMousePosition.x == -1 && fixedMousePosition.y == -1)
+        {
+            fixedMousePosition.x = mouseLocation.x;
+            fixedMousePosition.y = mouseLocation.y;
+        }
 
         CGWarpMouseCursorPosition(fixedMousePosition);
         return NULL;
@@ -257,6 +286,34 @@ DLL_EXPORT void listener_init(
     context.is_lalt_down = false;
     context.is_escape_down = false;
     context.blocking = false;
+
+    // 创建 HID 管理器
+    IOHIDManagerRef manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+
+    // 设置设备匹配字典（匹配鼠标设备）
+    CFMutableDictionaryRef matchDict = CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
+                                                                 &kCFTypeDictionaryKeyCallBacks,
+                                                                 &kCFTypeDictionaryValueCallBacks);
+    int usagePage = 1; // Generic Desktop Controls
+    int usage = 2;     // Mouse
+    CFNumberRef usagePageRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usagePage);
+    CFNumberRef usageRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usage);
+    CFDictionarySetValue(matchDict, CFSTR(kIOHIDDeviceUsagePageKey), usagePageRef);
+    CFDictionarySetValue(matchDict, CFSTR(kIOHIDDeviceUsageKey), usageRef);
+
+    IOHIDManagerSetDeviceMatching(manager, matchDict);
+
+    // 设置回调函数
+    IOHIDManagerRegisterInputValueCallback(manager, handleHIDInput, NULL);
+
+    // 启用 HID 管理器
+    IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+    IOReturn ret = IOHIDManagerOpen(manager, kIOHIDOptionsTypeNone);
+    if (ret != kIOReturnSuccess)
+    {
+        fprintf(stderr, "错误：无法打开 HID Manager（权限不足？）\n");
+        return;
+    }
 
     CFMachPortRef eventTap = CGEventTapCreate(
         kCGHIDEventTap,           // 监听硬件层的事件
@@ -297,33 +354,6 @@ DLL_EXPORT void listener_init(
 
     // ------------------------------------------
 
-    // 创建 HID 管理器
-    IOHIDManagerRef manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-
-    // 设置设备匹配字典（匹配鼠标设备）
-    CFMutableDictionaryRef matchDict = CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
-                                                                 &kCFTypeDictionaryKeyCallBacks,
-                                                                 &kCFTypeDictionaryValueCallBacks);
-    int usagePage = 1; // Generic Desktop Controls
-    int usage = 2;     // Mouse
-    CFNumberRef usagePageRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usagePage);
-    CFNumberRef usageRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usage);
-    CFDictionarySetValue(matchDict, CFSTR(kIOHIDDeviceUsagePageKey), usagePageRef);
-    CFDictionarySetValue(matchDict, CFSTR(kIOHIDDeviceUsageKey), usageRef);
-
-    IOHIDManagerSetDeviceMatching(manager, matchDict);
-
-    // 设置回调函数
-    IOHIDManagerRegisterInputValueCallback(manager, handleHIDInput, NULL);
-
-    // 启用 HID 管理器
-    IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-    IOReturn ret = IOHIDManagerOpen(manager, kIOHIDOptionsTypeNone);
-    if (ret != kIOReturnSuccess)
-    {
-        fprintf(stderr, "错误：无法打开 HID Manager（权限不足？）\n");
-        return;
-    }
     printf("Listening for mouse input...\n");
 
     printf("Listening for mouse movements...\n");
@@ -357,4 +387,9 @@ DLL_EXPORT void listener_close()
 DLL_EXPORT void listener_setBlock(bool block)
 {
     context.blocking = block;
+    if (!block)
+    {
+        fixedMousePosition.x = -1;
+        fixedMousePosition.y = -1;
+    }
 }
