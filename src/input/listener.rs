@@ -318,6 +318,9 @@ extern "C" fn hotkey_handler(hotkeys: *const [c_long; 7]) {
         } else {
             match STATE.lock() {
                 Ok(state) => {
+                    if state.remote_peer.is_none() {
+                        return;
+                    }
                     if !state.get_setting().enable_control {
                         return;
                     }
