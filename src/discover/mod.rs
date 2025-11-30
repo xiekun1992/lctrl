@@ -59,7 +59,7 @@ pub fn init() {
                 let peer_in_remotes = if let Ok(mut remotes) = state.remotes.try_lock() {
                     remotes.retain(|item| {
                         // println!("{}, {}", timestamp, item.alive_timestamp);
-                        timestamp.wrapping_sub(item.alive_timestamp) < 3u64
+                        timestamp.wrapping_sub(item.alive_timestamp) < 5u64
                     });
                     match state.remote_peer {
                         Some(ref rdev) => {
