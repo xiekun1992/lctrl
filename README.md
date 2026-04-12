@@ -41,5 +41,5 @@
 ### 项目构建
 
 #### Linux Ubuntu
-- `sudo apt install libssl-dev libwayland-dev`
+- `sudo apt install libssl-dev libwayland-dev libevdev-dev -y`
 - `cargo build 之后通过 run.sh脚本运行`
