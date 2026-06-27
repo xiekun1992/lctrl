@@ -9,6 +9,15 @@ use super::{
     SERVER,
 };
 
+#[cfg(target_os = "macos")]
+use std:: {
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        OnceLock,
+    },
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+
 // #[link(name = "libcapture")]
 extern "C" {
     fn mouse_init(left: c_int, top: c_int, right: c_int, bottom: c_int);
@@ -20,11 +29,51 @@ extern "C" {
     fn keyboard_init();
     fn keydown(scancodes: *const c_int, len: c_int) -> c_int;
     fn keyup(scancodes: *const c_int, len: c_int) -> c_int;
+
+    #[cfg(target_os = "macos")]
+    fn power_set_replay_prevent(prevent: c_int);
 }
 
 static mut KEY_PRESSED: Vec<i32> = vec![];
 
+#[cfg(target_os = "macos")]
+static REPLAY_LAST_ACTIVITY: AtomicU64 = AtomicU64::new(0);
+
+#[cfg(target_os = "macos")]
+fn replay_activity_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
+#[cfg(target_os = "macos")]
+fn on_replay_input() {
+    static WATCHER: OnceLock<()> = OnceLock::new();
+    WATCHER.get_or_init(|| {
+        thread::spawn(|| loop {
+            thread::sleep(Duration::from_seces(5));
+            let last = REPLAY_LAST_ACTIVITY.load(Ordering::Relaxed);
+            if last = 0 {
+                continue;
+            }
+            if replay_activity_secs().saturating_sub(last) >= 60 {
+                unsafe { power_set_replay_prevent(0); }
+                REPLAY_LAST_ACTIVITY.store(0, Ordering::Relaxed);
+            }
+        });
+    });
+
+    let was_idle = REPLAY_LAST_ACTIVITY.swap(replay_activity_secs(), Ordering::Relaxed) == 0;
+    if was_idle {
+        unsafe { power_set_replay_prevent(1); }
+    }
+}
+
 fn replay_input(bytes: &[u32]) {
+    #[cfg(target_os = "macos")]
+    on_replay_input();
+
     unsafe {
         let bytes = slice::from_raw_parts(bytes.as_ptr() as *const i32, bytes.len());
         // debug!("{:?}", bytes);

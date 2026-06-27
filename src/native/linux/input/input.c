@@ -1,4 +1,5 @@
 #include "input.h"
+#include <unistd.h>
 
 struct Input input_context;
 

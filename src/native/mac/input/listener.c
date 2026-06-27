@@ -1,4 +1,5 @@
 #include "listener.h"
+#include "../power.h"
 
 struct Listener context;
 static CGPoint fixedMousePosition = {-1, -1};
@@ -198,8 +199,8 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
     }
     case kCGEventScrollWheel:
     { // 滚轮滚动
-        int64_t delta = CGEventGetIntegerValueField(event, kCGScrollWheelEventDeltaAxis1);
-        double delta1 = CGEventGetIntegerValueField(event, kCGScrollWheelEventDeltaAxis1);
+        int64_t delta = CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis1);
+        double delta1 = CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis2);
         printf("Scroll wheel moved: %f\n", delta1);
         if (delta != 0)
         {
@@ -210,10 +211,20 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
         break;
     }
     case kCGEventMouseMoved: // 鼠标移动
+    case kCGEventLeftMouseDragged:
+    case kCGEventRightMouseDragged:
+    case kCGEventOtherMouseDragged:
     {
         wheeling = 0;
-        int params[5] = {L_MOUSEMOVE, (int)x, (int)y, 0, (int)(0)};
-        context.mouseHanlder(params);
+        if (context.blocking) {
+            int64_t dx = CGEventGetIntegerValueField(event, kCGMouseEventDeltaX);
+            int64_t dy = CGEventGetIntegerValueField(event, kCGMouseEventDeltaY);
+            int params[5] = {L_MOUSEMOVEREL, (int)dx, (int)dy, 0, (int)(0)};
+            context.mouseHanlder(params);
+        } else {
+            int params[5] = {L_MOUSEMOVE, (int)x, (int)y, 0, (int)(0)};
+            context.mouseHanlder(params);
+        }
         break;
     }
     case kCGEventLeftMouseDown: // 左键按下
@@ -319,20 +330,21 @@ DLL_EXPORT void listener_init(
         kCGHIDEventTap,           // 监听硬件层的事件
         kCGHeadInsertEventTap,    // 插入到事件队列的头部
         kCGEventTapOptionDefault, // 默认选项
-        CGEventMaskBit(kCGEventKeyUp) |
-            CGEventMaskBit(kCGEventKeyDown) |
-            CGEventMaskBit(kCGEventLeftMouseDragged) |
-            CGEventMaskBit(kCGEventRightMouseDragged) |
-            CGEventMaskBit(kCGEventMouseMoved) |
-            CGEventMaskBit(kCGEventLeftMouseDown) |
-            CGEventMaskBit(kCGEventLeftMouseUp) |
-            CGEventMaskBit(kCGEventRightMouseDown) |
-            CGEventMaskBit(kCGEventRightMouseUp) |
-            CGEventMaskBit(kCGEventScrollWheel) |
-            CGEventMaskBit(kCGEventOtherMouseDown) |
-            CGEventMaskBit(kCGEventOtherMouseUp) |
-            CGEventMaskBit(kCGEventOtherMouseDragged) |
-            CGEventMaskBit(kCGEventFlagsChanged), // 监听鼠标移动事件
+        kCGEventMaskForAllEvents,
+        // CGEventMaskBit(kCGEventKeyUp) |
+        //     CGEventMaskBit(kCGEventKeyDown) |
+        //     CGEventMaskBit(kCGEventLeftMouseDragged) |
+        //     CGEventMaskBit(kCGEventRightMouseDragged) |
+        //     CGEventMaskBit(kCGEventMouseMoved) |
+        //     CGEventMaskBit(kCGEventLeftMouseDown) |
+        //     CGEventMaskBit(kCGEventLeftMouseUp) |
+        //     CGEventMaskBit(kCGEventRightMouseDown) |
+        //     CGEventMaskBit(kCGEventRightMouseUp) |
+        //     CGEventMaskBit(kCGEventScrollWheel) |
+        //     CGEventMaskBit(kCGEventOtherMouseDown) |
+        //     CGEventMaskBit(kCGEventOtherMouseUp) |
+        //     CGEventMaskBit(kCGEventOtherMouseDragged) |
+        //     CGEventMaskBit(kCGEventFlagsChanged), // 监听鼠标移动事件
         eventCallback,                            // 回调函数
         NULL                                      // 用户数据
     );
@@ -387,6 +399,7 @@ DLL_EXPORT void listener_close()
 DLL_EXPORT void listener_setBlock(bool block)
 {
     context.blocking = block;
+    power_set_block_prevent(block);
     if (!block)
     {
         fixedMousePosition.x = -1;

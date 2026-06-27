@@ -27,6 +27,8 @@ extern "C" {
     fn listener_listen();
     fn listener_setBlock(block: c_int);
     fn mouse_move(x: c_int, y: c_int);
+    #[cfg(target_os = "macos")]
+    fn power_set_replay_prevent(prevent: c_int);
 }
 
 pub const MOUSE_WHEEL: i32 = 0;
@@ -60,20 +62,20 @@ fn send_to_remote(ev: &[i32]) {
         let bytes =
             slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>());
         // println!("{:?}", bytes);
-        {
-            match &STATE.lock() {
+        
+        let addr = match STATE.lock() {
                 Ok(s) => match s.get_remote_peer() {
-                    Some(peer) => {
-                        let addr = format!("{}:11233", peer.ip);
-                        // debug!("{:?}", ev);
-                        SERVER.send(&bytes, &addr);
-                    }
-                    None => {}
+                    Some(peer) => format!("{}:11233", peer.ip),
+                    None => return
                 },
                 Err(_e) => {
                     error!("send_to_remote state lock failed");
+                    return;
                 }
-            }
+            };
+        if let Err(e) = SERVER.send(&bytes, &addr) {
+            error!("send input to {} failed: {}", addr, e);
+            release();
         }
     }
 }
@@ -317,10 +319,10 @@ extern "C" fn hotkey_handler(hotkeys: *const [InputType; 7]) {
         if BLOCK {
             BLOCK = false;
             listener_setBlock(0);
-            POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-            let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
-            let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
-            mouse_move(center_x, center_y);
+            // POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+            // let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
+            // let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
+            // mouse_move(center_x, center_y);
         } else {
             match STATE.lock() {
                 Ok(state) => {
@@ -380,6 +382,8 @@ pub fn release() {
             IS_REMOTE_ALIVE = false;
             POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
             listener_setBlock(0);
+            #[cfg(target_os = "macos")]
+            power_set_replay_prevent(0);
         }
     }
 }

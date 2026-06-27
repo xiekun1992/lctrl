@@ -32,12 +32,15 @@ fn main() {
     {
         let c_files = vec![
             "src/native/mac/utils.c",
+            "src/native/mac/power.c",
             "src/native/mac/input/keyboard.c",
             "src/native/mac/input/listener.c",
             "src/native/mac/input/mouse.c",
         ];
         cc::Build::new()
             .files(c_files)
+            .include("src/native/mac")
+            .include("src/native/mac/input")
             .include("/System/Library/Frameworks/ApplicationServices.framework/Headers")
             .compile("libcapture");
         println!("cargo:rustc-link-lib=framework=CoreGraphics");

@@ -1,5 +1,6 @@
+use std::io;
 use std::net::UdpSocket;
-use std::{mem, slice, str};
+use std::{mem, slice};
 use tracing::info;
 
 pub struct UDPServer {
@@ -37,7 +38,7 @@ impl UDPServer {
             }
         }
     }
-    pub fn send(&self, bytes: &[u8], addr: &str) {
-        self.socket.send_to(bytes, addr).expect("send input failed");
+    pub fn send(&self, bytes: &[u8], addr: &str) -> io::Result<usize> {
+        self.socket.send_to(bytes, addr)
     }
 }

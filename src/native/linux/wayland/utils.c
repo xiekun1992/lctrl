@@ -158,5 +158,5 @@ DLL_EXPORT RECT get_screen_size()
 DLL_EXPORT RECT *get_screens(int *count)
 {
     *count = screen_count;
-    return &screens_rect;
+    return screens_rect;
 }
