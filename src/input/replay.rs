@@ -52,9 +52,9 @@ fn on_replay_input() {
     static WATCHER: OnceLock<()> = OnceLock::new();
     WATCHER.get_or_init(|| {
         thread::spawn(|| loop {
-            thread::sleep(Duration::from_seces(5));
+            thread::sleep(Duration::from_secs(5));
             let last = REPLAY_LAST_ACTIVITY.load(Ordering::Relaxed);
-            if last = 0 {
+            if last == 0 {
                 continue;
             }
             if replay_activity_secs().saturating_sub(last) >= 60 {
