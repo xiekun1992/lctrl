@@ -5,7 +5,7 @@
 struct Listener context;
 static CGPoint fixedMousePosition = {-1, -1};
 static int prevDeltaX = 0, prevDeltaY = 0;
-static wheeling = 0;
+static int wheeling = 0;
 static CGEventFlags lastFlags = 0;
 
 #define WHEEL_FLUSH_INTERVAL_MS 32
@@ -22,7 +22,7 @@ static uint64_t wheel_now_ms() {
 }
 
 static void flush_wheel() {
-    if (pendingwheelDelta == 0) {
+    if (pendingWheelDelta == 0) {
         return;
     }
     wheeling = 1;
