@@ -1,11 +1,50 @@
 #include "listener.h"
 #include "../power.h"
+#include <time.h>
 
 struct Listener context;
 static CGPoint fixedMousePosition = {-1, -1};
-int prevDeltaX = 0, prevDeltaY = 0;
-int wheeling = 0;
+static int prevDeltaX = 0, prevDeltaY = 0;
+static wheeling = 0;
 static CGEventFlags lastFlags = 0;
+
+#define WHEEL_FLUSH_INTERVAL_MS 32
+static int64_t pendingWheelDelta = 0;
+static int pendingWheelX = 0;
+static int pendingWheelY = 0;
+static uint64_t lastWheelFlushMs = 0;
+static uint64_t lastWheelEventMs = 0;
+
+static uint64_t wheel_now_ms() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+}
+
+static void flush_wheel() {
+    if (pendingwheelDelta == 0) {
+        return;
+    }
+    wheeling = 1;
+    int params[5] = {L_MOUSEWHEEL, pendingWheelX, pendingWheelY, 0, (int)pendingWheelDelta};
+    context.mouseHanlder(params);
+    pendingWheelDelta = 0;
+    lastWheelFlushMs = wheel_now_ms();
+}
+
+static void queue_wheel_delta(int x, int y, int64_t delta) {
+    uint64_t now = wheel_now_ms();
+    if (lastWheelEventMs != 0 && now - lastWheelEventMs >= WHEEL_FLUSH_INTERVAL_MS && pendingWheelDelta != 0) {
+        flush_wheel();
+    }
+    pendingWheelDelta += delta;
+    pendingWheelX = x;
+    pendingWheelY = y;
+    lastWheelEventMs = now;
+    if (lastWheelFlushMs == 0 || now - lastWheelFlushMs >= WHEEL_FLUSH_INTERVAL_MS) {
+        flush_wheel();
+    }
+}
 
 // 回调函数：处理鼠标输入事件
 void handleHIDInput(void *context1, IOReturn result, void *sender, IOHIDValueRef value)
@@ -200,13 +239,14 @@ CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef eve
     case kCGEventScrollWheel:
     { // 滚轮滚动
         int64_t delta = CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis1);
-        double delta1 = CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis2);
-        printf("Scroll wheel moved: %f\n", delta1);
+        // double delta1 = CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis2);
+        // printf("Scroll wheel moved: %f\n", delta1);
         if (delta != 0)
         {
-            wheeling = 1;
-            int params[5] = {L_MOUSEWHEEL, (int)x, (int)y, 0, delta};
-            context.mouseHanlder(params);
+            // wheeling = 1;
+            // int params[5] = {L_MOUSEWHEEL, (int)x, (int)y, 0, delta};
+            // context.mouseHanlder(params);
+            queue_wheel_delta((int)x, (int)y, delta);
         }
         break;
     }
