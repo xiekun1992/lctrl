@@ -4,7 +4,7 @@ struct Listener context;
 
 int resolve_ex_scancode(PKBDLLHOOKSTRUCT hookStruct)
 {
-    if (hookStruct->flags & 0x01 == 1)
+    if ((hookStruct->flags & 0x01) == 1)
     {
         return 0xe000 + hookStruct->scanCode;
     }
@@ -47,11 +47,8 @@ LRESULT CALLBACK keyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam)
             context.is_escape_down = true;
         }
         if (
-            // context.is_lcontrol_down &&
-            // context.is_lshift_down &&
             context.is_lwin_down &&
-            context.is_lalt_down &&
-            // context.is_escape_down
+            context.is_lalt_down
         )
         {
             long hotkeys[5][7] = {
