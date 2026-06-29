@@ -1,7 +1,6 @@
 use super::SERVER;
-use crate::global::state::{self, STATE};
+use crate::global::{STATE, get_listener_state, get_is_remote_alive, get_block, set_block, set_is_remote_alive, set_pos_in_remote_screen, set_mouse_button_hold, get_mouse_button_hold};
 use tracing::{error, info};
-// use tracing::debug;
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::{c_int, c_long},
@@ -26,7 +25,7 @@ extern "C" {
     );
     fn listener_listen();
     fn listener_setBlock(block: c_int);
-    fn mouse_move(x: c_int, y: c_int);
+    // fn mouse_move(x: c_int, y: c_int);
     #[cfg(target_os = "macos")]
     fn power_set_replay_prevent(prevent: c_int);
 }
@@ -47,58 +46,72 @@ pub enum ControlSide {
     TOP,
 }
 
-pub static mut REMOTE_SCREEN_SIZE: [f32; 4] = [0.0, 0.0, 0.0, 0.0]; // left, right, top, bottom
-pub static mut SELF_SCREEN_SIZE: [i32; 4] = [0, 0, 0, 0]; // left, right, top, bottom
-pub static mut SIDE: ControlSide = ControlSide::NONE;
-static mut POS_IN_REMOTE_SCREEN: [f32; 2] = [0.0, 0.0];
-// static mut POS_IN_REMOTE_SCREEN_FL: [f32; 2] = [0f32, 0f32];
-static mut BLOCK: bool = false;
-static mut MOUSE_BUTTON_HOLD: bool = false;
-static mut IS_REMOTE_ALIVE: bool = false;
+/// Listener state - encapsulates all state variables
+/// Defined here, managed in global/mod.rs
+pub struct ListenerState {
+    pub remote_screen_size: [f32; 4],  // left, right, top, bottom
+    pub self_screen_size: [i32; 4],    // left, right, top, bottom
+    pub side: ControlSide,
+    pub pos_in_remote_screen: [f32; 2],
+    pub block: bool,
+    pub mouse_button_hold: bool,
+    pub is_remote_alive: bool,
+}
 
-fn send_to_remote(ev: &[i32]) {
-    unsafe {
-        // println!("{:?}", ev);
-        let bytes =
-            slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>());
-        // println!("{:?}", bytes);
-        
-        let addr = match STATE.lock() {
-                Ok(s) => match s.get_remote_peer() {
-                    Some(peer) => format!("{}:11233", peer.ip),
-                    None => return
-                },
-                Err(_e) => {
-                    error!("send_to_remote state lock failed");
-                    return;
-                }
-            };
-        if let Err(e) = SERVER.send(&bytes, &addr) {
-            error!("send input to {} failed: {}", addr, e);
-            release();
+impl ListenerState {
+    pub fn new() -> Self {
+        Self {
+            remote_screen_size: [0.0, 0.0, 0.0, 0.0],
+            self_screen_size: [0, 0, 0, 0],
+            side: ControlSide::NONE,
+            pos_in_remote_screen: [0.0, 0.0],
+            block: false,
+            mouse_button_hold: false,
+            is_remote_alive: false,
         }
     }
 }
 
+fn send_to_remote(ev: &[i32]) {
+    // println!("{:?}", ev);
+    let bytes = unsafe {
+        slice::from_raw_parts(ev.as_ptr() as *const u8, ev.len() * mem::size_of::<i32>())
+    };
+    // println!("{:?}", bytes);
+    
+    let addr = match STATE.lock() {
+            Ok(s) => match s.get_remote_peer() {
+                Some(peer) => format!("{}:11233", peer.ip),
+                None => return
+            },
+            Err(_e) => {
+                error!("send_to_remote state lock failed");
+                return;
+            }
+        };
+    if let Err(e) = SERVER.send(&bytes, &addr) {
+        error!("send input to {} failed: {}", addr, e);
+        release();
+    }
+}
+
 extern "C" fn mouse_handler(ev: *const InputType) {
-    unsafe {
-        if !IS_REMOTE_ALIVE {
-            return;
-        }
-        let ev = slice::from_raw_parts(ev, 5);
-        let ev = &[
-            ev[0] as i32,
-            ev[1] as i32,
-            ev[2] as i32,
-            ev[3] as i32,
-            ev[4] as i32,
-        ];
-        // println!(
-        //     "BLOCK={}, SIDE={:?}, POS_IN_REMOTE_SCREEN={:?}, mouse_type={}, x={}, y={}",
-        //     BLOCK, SIDE, POS_IN_REMOTE_SCREEN, ev[0], ev[1], ev[2]
-        // );
-        // 控制状态下转发鼠标动作
-        if BLOCK {
+    let ev = unsafe { slice::from_raw_parts(ev, 5) };
+    let ev = &[
+        ev[0] as i32,
+        ev[1] as i32,
+        ev[2] as i32,
+        ev[3] as i32,
+        ev[4] as i32,
+    ];
+
+    if !get_is_remote_alive() {
+        return;
+    }
+
+    if let Ok(mut state) = get_listener_state().lock() {
+        // Control mode: forward mouse actions
+        if state.block {
             // mousemoverel
             match ev[0] {
                 MOUSE_REL_MOVE => {
@@ -122,70 +135,68 @@ extern "C" fn mouse_handler(ev: *const InputType) {
                     if ev[2].abs() >= 20 {
                         yfactor *= 1.5;
                     }
-                    POS_IN_REMOTE_SCREEN[0] += (ev[1] as f32) * xfactor;
-                    POS_IN_REMOTE_SCREEN[1] += (ev[2] as f32) * yfactor;
-                    // POS_IN_REMOTE_SCREEN[0] = POS_IN_REMOTE_SCREEN_FL[0] as i32;
-                    // POS_IN_REMOTE_SCREEN[1] = POS_IN_REMOTE_SCREEN_FL[1] as i32;
-                    // POS_IN_REMOTE_SCREEN[0] += ev[1];
-                    // POS_IN_REMOTE_SCREEN[1] += ev[2];
-                    // 检测是否移动到屏幕边缘并解除控制
-                    match SIDE {
+                    state.pos_in_remote_screen[0] += (ev[1] as f32) * xfactor;
+                    state.pos_in_remote_screen[1] += (ev[2] as f32) * yfactor;
+
+                    // Check if moved to screen edge and release control
+                    match state.side {
                         ControlSide::LEFT => {
-                            if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+                            if state.pos_in_remote_screen[0] > state.remote_screen_size[1] {
+                                if !state.mouse_button_hold {
+                                    unsafe { listener_setBlock(0); }
+                                    state.block = false;
+                                    state.pos_in_remote_screen[0] = state.remote_screen_size[1];
                                 }
                             }
                         }
                         ControlSide::RIGHT => {
-                            if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+                            if state.pos_in_remote_screen[0] < state.remote_screen_size[0] {
+                                if !state.mouse_button_hold {
+                                    unsafe { listener_setBlock(0); }
+                                    state.block = false;
+                                    state.pos_in_remote_screen[0] = state.remote_screen_size[0];
                                 }
                             }
                         }
                         ControlSide::TOP => {
-                            if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
-                                if !MOUSE_BUTTON_HOLD {
-                                    listener_setBlock(0);
-                                    BLOCK = false;
-                                    POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+                            if state.pos_in_remote_screen[1] > state.remote_screen_size[3] {
+                                if !state.mouse_button_hold {
+                                    unsafe { listener_setBlock(0); }
+                                    state.block = false;
+                                    state.pos_in_remote_screen[1] = state.remote_screen_size[3];
                                 }
                             }
                         }
                         _ => {}
                     }
-                    // 检测是否超过屏幕上下限
-                    if POS_IN_REMOTE_SCREEN[0] < REMOTE_SCREEN_SIZE[0] {
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
+
+                    // Check if exceeds screen bounds
+                    if state.pos_in_remote_screen[0] < state.remote_screen_size[0] {
+                        state.pos_in_remote_screen[0] = state.remote_screen_size[0];
                     }
-                    if POS_IN_REMOTE_SCREEN[0] > REMOTE_SCREEN_SIZE[1] {
-                        POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
+                    if state.pos_in_remote_screen[0] > state.remote_screen_size[1] {
+                        state.pos_in_remote_screen[0] = state.remote_screen_size[1];
                     }
-                    if POS_IN_REMOTE_SCREEN[1] < REMOTE_SCREEN_SIZE[2] {
-                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[2];
+                    if state.pos_in_remote_screen[1] < state.remote_screen_size[2] {
+                        state.pos_in_remote_screen[1] = state.remote_screen_size[2];
                     }
-                    if POS_IN_REMOTE_SCREEN[1] > REMOTE_SCREEN_SIZE[3] {
-                        POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
+                    if state.pos_in_remote_screen[1] > state.remote_screen_size[3] {
+                        state.pos_in_remote_screen[1] = state.remote_screen_size[3];
                     }
 
-                    // 鼠标相对移动转换成绝对移动
-                    let x = POS_IN_REMOTE_SCREEN[0] as i32;
-                    let y = POS_IN_REMOTE_SCREEN[1] as i32;
+                    // Convert relative mouse movement to absolute
+                    let x = state.pos_in_remote_screen[0] as i32;
+                    let y = state.pos_in_remote_screen[1] as i32;
                     let bytes_to_send = [1, x, y];
                     send_to_remote(bytes_to_send.as_slice());
                 }
                 MOUSE_MOVE => {}
                 MOUSE_DOWN => {
-                    MOUSE_BUTTON_HOLD = true;
+                    state.mouse_button_hold = true;
                     send_to_remote(ev);
                 }
                 MOUSE_UP => {
-                    MOUSE_BUTTON_HOLD = false;
+                    state.mouse_button_hold = false;
                     send_to_remote(ev);
                 }
                 MOUSE_WHEEL => {
@@ -195,175 +206,160 @@ extern "C" fn mouse_handler(ev: *const InputType) {
                     send_to_remote(ev);
                 }
             }
+            return;
         }
+    }
 
-        // 非控制下检测鼠标移动，判断是否进入控制
-        if !BLOCK {
-            match ev[0] {
-                MOUSE_MOVE => {
-                    // mousemove
-                    if MOUSE_BUTTON_HOLD {
-                        return;
-                    }
-                    match SIDE {
+    // Non-control mode: detect mouse movement to enter control
+    if !get_block() {
+        match ev[0] {
+            MOUSE_MOVE => {
+                if get_mouse_button_hold() {
+                    return;
+                }
+                
+                if let Ok(state) = get_listener_state().lock() {
+                    match state.side {
                         ControlSide::LEFT => {
-                            if ev[1] <= SELF_SCREEN_SIZE[0] {
-                                match STATE.lock() {
-                                    Ok(state) => {
-                                        if !state.get_setting().enable_control {
-                                            return;
-                                        }
-                                        if !state.get_setting().cursor_across_screens {
-                                            return;
-                                        }
+                            if ev[1] <= state.self_screen_size[0] {
+                                let enable_control = {
+                                    if let Ok(s) = STATE.lock() {
+                                        s.get_setting().enable_control && s.get_setting().cursor_across_screens
+                                    } else {
+                                        false
                                     }
-                                    Err(_e) => {
-                                        error!("mouse_handler state lock failed");
-                                        return;
-                                    }
+                                };
+                                if !enable_control {
+                                    return;
                                 }
 
-                                listener_setBlock(1);
-                                POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[1];
-                                POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
-                                BLOCK = true;
+                                unsafe { listener_setBlock(1); }
+                                set_pos_in_remote_screen([state.remote_screen_size[1], ev[2] as f32]);
+                                set_block(true);
                             }
                         }
                         ControlSide::RIGHT => {
-                            if ev[1] >= SELF_SCREEN_SIZE[1] {
-                                match STATE.lock() {
-                                    Ok(state) => {
-                                        if !state.get_setting().enable_control {
-                                            return;
-                                        }
-                                        if !state.get_setting().cursor_across_screens {
-                                            return;
-                                        }
+                            if ev[1] >= state.self_screen_size[1] {
+                                let enable_control = {
+                                    if let Ok(s) = STATE.lock() {
+                                        s.get_setting().enable_control && s.get_setting().cursor_across_screens
+                                    } else {
+                                        false
                                     }
-                                    Err(_e) => {
-                                        error!("mouse_handler state lock failed");
-                                        return;
-                                    }
+                                };
+                                if !enable_control {
+                                    return;
                                 }
 
-                                listener_setBlock(1);
-                                POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-                                POS_IN_REMOTE_SCREEN[1] = ev[2] as f32;
-                                BLOCK = true;
+                                unsafe { listener_setBlock(1); }
+                                set_pos_in_remote_screen([state.remote_screen_size[0], ev[2] as f32]);
+                                set_block(true);
                             }
                         }
                         ControlSide::TOP => {
-                            if ev[2] <= SELF_SCREEN_SIZE[2] {
-                                match STATE.lock() {
-                                    Ok(state) => {
-                                        if !state.get_setting().enable_control {
-                                            return;
-                                        }
-                                        if !state.get_setting().cursor_across_screens {
-                                            return;
-                                        }
+                            if ev[2] <= state.self_screen_size[2] {
+                                let enable_control = {
+                                    if let Ok(s) = STATE.lock() {
+                                        s.get_setting().enable_control && s.get_setting().cursor_across_screens
+                                    } else {
+                                        false
                                     }
-                                    Err(_e) => {
-                                        error!("mouse_handler state lock failed");
-                                        return;
-                                    }
+                                };
+                                if !enable_control {
+                                    return;
                                 }
 
-                                listener_setBlock(1);
-                                POS_IN_REMOTE_SCREEN[0] = ev[1] as f32;
-                                POS_IN_REMOTE_SCREEN[1] = REMOTE_SCREEN_SIZE[3];
-                                BLOCK = true;
+                                unsafe { listener_setBlock(1); }
+                                set_pos_in_remote_screen([ev[1] as f32, state.remote_screen_size[3]]);
+                                set_block(true);
                             }
                         }
                         _ => {}
                     }
                 }
-                MOUSE_DOWN => {
-                    MOUSE_BUTTON_HOLD = true;
-                }
-                MOUSE_UP => {
-                    MOUSE_BUTTON_HOLD = false;
-                }
-                _ => {}
             }
+            MOUSE_DOWN => {
+                set_mouse_button_hold(true);
+            }
+            MOUSE_UP => {
+                set_mouse_button_hold(false);
+            }
+            _ => {}
         }
     }
 }
 
 extern "C" fn keyboard_handler(ev: *const InputType) {
-    unsafe {
-        if !IS_REMOTE_ALIVE {
-            return;
-        }
-        if BLOCK {
-            let ev = slice::from_raw_parts(ev, 7);
-            let ev = &[
-                ev[0] as i32,
-                ev[1] as i32,
-                ev[2] as i32,
-                ev[3] as i32,
-                ev[4] as i32,
-                ev[5] as i32,
-                ev[6] as i32,
-            ];
-            // debug!("keyboard: {:?}", ev);
-            send_to_remote(ev);
-        }
+    let ev = unsafe { slice::from_raw_parts(ev, 7) };
+    let ev = &[
+        ev[0] as i32,
+        ev[1] as i32,
+        ev[2] as i32,
+        ev[3] as i32,
+        ev[4] as i32,
+        ev[5] as i32,
+        ev[6] as i32,
+    ];
+
+    if !get_is_remote_alive() {
+        return;
+    }
+    if get_block() {
+        send_to_remote(ev);
     }
 }
 
 extern "C" fn hotkey_handler(hotkeys: *const [InputType; 7]) {
     info!("unblock hotkey triggered");
-    thread::sleep(Duration::from_millis(100)); // 让控制端有时间处理完按键释放事件，防止热建触发时按键还按着
-    unsafe {
-        if BLOCK {
-            BLOCK = false;
-            listener_setBlock(0);
-            // POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-            // let center_x = (SELF_SCREEN_SIZE[1] - SELF_SCREEN_SIZE[0]) / 2;
-            // let center_y = (SELF_SCREEN_SIZE[3] - SELF_SCREEN_SIZE[2]) / 2;
-            // mouse_move(center_x, center_y);
-        } else {
-            match STATE.lock() {
-                Ok(state) => {
-                    if state.remote_peer.is_none() {
-                        return;
-                    }
-                    if !state.get_setting().enable_control {
-                        return;
-                    }
-                }
-                Err(_e) => {
-                    error!("hotkey_handler state lock failed");
-                    return;
-                }
+    thread::sleep(Duration::from_millis(100));
+
+    if get_block() {
+        set_block(false);
+        unsafe { listener_setBlock(0); }
+    } else {
+        // Check if remote peer exists and control is enabled
+        let can_control = {
+            if let Ok(s) = STATE.lock() {
+                s.remote_peer.is_some() && s.get_setting().enable_control
+            } else {
+                false
             }
+        };
+        if !can_control {
+            return;
+        }
 
-            BLOCK = true;
-            listener_setBlock(1);
-            POS_IN_REMOTE_SCREEN[0] = (REMOTE_SCREEN_SIZE[1] - REMOTE_SCREEN_SIZE[0]) / 2.0;
-            POS_IN_REMOTE_SCREEN[1] = (REMOTE_SCREEN_SIZE[3] - REMOTE_SCREEN_SIZE[2]) / 2.0;
+        set_block(true);
+        unsafe { listener_setBlock(1); }
+        
+        if let Ok(state) = get_listener_state().lock() {
+            let pos = [
+                (state.remote_screen_size[1] - state.remote_screen_size[0]) / 2.0,
+                (state.remote_screen_size[3] - state.remote_screen_size[2]) / 2.0
+            ];
+            set_pos_in_remote_screen(pos);
 
-            // 鼠标相对移动转换成绝对移动
-            let x = POS_IN_REMOTE_SCREEN[0] as i32;
-            let y = POS_IN_REMOTE_SCREEN[1] as i32;
+            // Convert relative mouse movement to absolute
+            let x = pos[0] as i32;
+            let y = pos[1] as i32;
             let bytes_to_send = [1, x, y];
             send_to_remote(bytes_to_send.as_slice());
         }
-        // 通知受控端将按键释放
-        let hotkeys = slice::from_raw_parts(hotkeys, 2);
-        for key in hotkeys {
-            let i32_key = [
-                key[0] as i32,
-                key[1] as i32,
-                key[2] as i32,
-                key[3] as i32,
-                key[4] as i32,
-                key[5] as i32,
-                key[6] as i32,
-            ];
-            send_to_remote(i32_key.as_slice());
-        }
+    }
+
+    // Notify remote side to release keys
+    let hotkeys = unsafe { slice::from_raw_parts(hotkeys, 2) };
+    for key in hotkeys {
+        let i32_key = [
+            key[0] as i32,
+            key[1] as i32,
+            key[2] as i32,
+            key[3] as i32,
+            key[4] as i32,
+            key[5] as i32,
+            key[6] as i32,
+        ];
+        send_to_remote(i32_key.as_slice());
     }
 }
 
@@ -375,22 +371,20 @@ pub fn init() {
 }
 
 pub fn release() {
-    // debug!("release");
-    unsafe {
-        if IS_REMOTE_ALIVE {
-            BLOCK = false;
-            IS_REMOTE_ALIVE = false;
-            POS_IN_REMOTE_SCREEN[0] = REMOTE_SCREEN_SIZE[0];
-            listener_setBlock(0);
-            #[cfg(target_os = "macos")]
-            power_set_replay_prevent(0);
+    if get_is_remote_alive() {
+        set_block(false);
+        set_is_remote_alive(false);
+        
+        if let Ok(state) = get_listener_state().lock() {
+            set_pos_in_remote_screen([state.remote_screen_size[0], state.pos_in_remote_screen[1]]);
         }
+        
+        unsafe { listener_setBlock(0); }
+        #[cfg(target_os = "macos")]
+        unsafe { power_set_replay_prevent(0); }
     }
 }
 
 pub fn keepalive() {
-    // debug!("keepalive");
-    unsafe {
-        IS_REMOTE_ALIVE = true;
-    }
+    set_is_remote_alive(true);
 }

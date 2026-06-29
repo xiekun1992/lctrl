@@ -9,7 +9,7 @@ use std::{
 use tracing::{debug, error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::global::state::STATE;
+use crate::global::STATE;
 
 type CClipboardHandler = extern "C" fn();
 // #[link(name = "libcapture")]

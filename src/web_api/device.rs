@@ -1,8 +1,7 @@
-use actix_multipart::form::json;
 use actix_web::{get, web, HttpResponse, Responder};
 
 use crate::{
-    global::{device::RemoteDevice, state::STATE},
+    global::{device::RemoteDevice, STATE},
     web_api::dto::Params,
 };
 

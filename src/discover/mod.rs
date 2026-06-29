@@ -8,7 +8,7 @@ use std::{
 use tracing::{error, info};
 use udp_server::UDPServer;
 
-use crate::global::state::STATE;
+use crate::global::STATE;
 
 pub fn init() {
     let udp_discover = UDPServer::new("0.0.0.0".to_string(), 11232);

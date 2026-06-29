@@ -1,4 +1,4 @@
-use std::{fs, io::Read};
+use std::fs;
 
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{post, HttpResponse, Responder};

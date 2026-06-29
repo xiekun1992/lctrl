@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{global::device::RemoteDevice, input::listener::ControlSide};
+use crate::global::device::RemoteDevice;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Params {

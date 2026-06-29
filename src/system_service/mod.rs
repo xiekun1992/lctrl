@@ -1,4 +1,4 @@
-use std::{env, ffi::c_int, process::Command, thread};
+use std::ffi::c_int;
 
 use tracing::{error, info};
 

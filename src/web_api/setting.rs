@@ -2,7 +2,7 @@ use actix_web::{get, put, web};
 use actix_web::{HttpResponse, Responder};
 use serde::Deserialize;
 
-use crate::global::state::STATE;
+use crate::global::STATE;
 use crate::web_api::dto::ScreenSetting;
 
 #[derive(Deserialize)]

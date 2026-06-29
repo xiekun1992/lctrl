@@ -1,7 +1,7 @@
 use actix_web::{put, web, HttpResponse, Responder};
 use tracing::info;
 
-use crate::global::{device::RemoteDevice, state::STATE};
+use crate::global::{device::RemoteDevice, STATE};
 
 use super::dto::Params;
 

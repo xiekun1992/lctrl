@@ -7,7 +7,7 @@ use actix_web::{post, web, HttpResponse, Responder};
 use tracing::{debug, info};
 
 use crate::{
-    global::{device::calc_broadcast_addr, state::STATE},
+    global::{device::calc_broadcast_addr, STATE},
     web_api::remote_peer::RemoteSetting,
 };
 

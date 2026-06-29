@@ -3,7 +3,7 @@ use std::time::Duration;
 use std::{net::UdpSocket, thread};
 
 use crate::global::device::RemoteDevice;
-use crate::global::state::STATE;
+use crate::global::STATE;
 use tracing::info;
 
 pub struct UDPServer {

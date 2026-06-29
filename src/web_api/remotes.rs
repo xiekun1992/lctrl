@@ -1,4 +1,4 @@
-use crate::global::{device::RemoteDevice, state::STATE};
+use crate::global::{device::RemoteDevice, STATE};
 use crate::web_api::dto::RemoteDevices;
 use actix_web::{
     delete, get, post,

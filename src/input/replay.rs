@@ -1,8 +1,13 @@
-use std::{ffi::c_int, slice, thread};
+use std::{
+    ffi::c_int,
+    slice,
+    thread,
+    sync::{Mutex, OnceLock},
+};
 
 use tracing::debug;
 
-use crate::global::state::STATE;
+use crate::global::STATE;
 
 use super::{
     listener::{KEY_DOWN, KEY_UP, MOUSE_DOWN, MOUSE_MOVE, MOUSE_REL_MOVE, MOUSE_UP, MOUSE_WHEEL},
@@ -13,7 +18,6 @@ use super::{
 use std:: {
     sync::{
         atomic::{AtomicU64, Ordering},
-        OnceLock,
     },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -34,7 +38,12 @@ extern "C" {
     fn power_set_replay_prevent(prevent: c_int);
 }
 
-static mut KEY_PRESSED: Vec<i32> = vec![];
+/// Track pressed keys - thread-safe with OnceLock and Mutex
+static KEY_PRESSED: OnceLock<Mutex<Vec<i32>>> = OnceLock::new();
+
+fn get_key_pressed() -> &'static Mutex<Vec<i32>> {
+    KEY_PRESSED.get_or_init(|| Mutex::new(Vec::new()))
+}
 
 #[cfg(target_os = "macos")]
 static REPLAY_LAST_ACTIVITY: AtomicU64 = AtomicU64::new(0);
@@ -113,7 +122,9 @@ fn replay_input(bytes: &[u32]) {
                 scancodes.push(shift_key);
                 scancodes.push(meta_key);
 
-                KEY_PRESSED.push(scancode);
+                if let Ok(mut pressed) = get_key_pressed().lock() {
+                    pressed.push(scancode);
+                }
                 keydown(scancodes.as_ptr(), scancodes.len() as i32);
             }
             KEY_UP => {
@@ -130,8 +141,10 @@ fn replay_input(bytes: &[u32]) {
                 scancodes.push(shift_key);
                 scancodes.push(meta_key);
 
-                KEY_PRESSED.retain(|key_scancode| scancode != *key_scancode);
-                debug!("{:?}", KEY_PRESSED);
+                if let Ok(mut pressed) = get_key_pressed().lock() {
+                    pressed.retain(|key_scancode| scancode != *key_scancode);
+                    debug!("{:?}", pressed);
+                }
                 keyup(scancodes.as_ptr(), scancodes.len() as i32);
             }
             MOUSE_REL_MOVE => {

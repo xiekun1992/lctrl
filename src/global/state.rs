@@ -5,8 +5,9 @@ use std::{
 };
 
 use crate::{
-    input::listener::{ControlSide, REMOTE_SCREEN_SIZE, SELF_SCREEN_SIZE, SIDE},
+    input::listener::ControlSide,
     web_api::dto::ScreenSetting,
+    global::{set_remote_screen_size, set_self_screen_size, set_side},
 };
 
 use super::{
@@ -14,7 +15,6 @@ use super::{
     device::{DeviceInfo, RemoteDevice},
     setting::Setting,
 };
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -72,10 +72,6 @@ extern "C" {
     fn get_screens(count: *mut i32) -> *const Rect;
 }
 
-lazy_static! {
-    pub static ref STATE: Mutex<State> = Mutex::new(State::new());
-}
-
 pub struct State {
     pub remotes: Mutex<Vec<RemoteDevice>>,
     pub manual_remotes: Mutex<Vec<RemoteDevice>>,
@@ -89,7 +85,7 @@ pub struct State {
 }
 
 impl State {
-    fn new() -> State {
+    pub fn new() -> State {
         let db = DB::new();
         db.initialize();
 
@@ -234,11 +230,9 @@ impl State {
         match self.remote_peer.clone() {
             Some(rdev) => {
                 if self.find_remote_by_ip(&rdev.ip).is_some() {
-                    unsafe {
-                        REMOTE_SCREEN_SIZE = rdev.screen_size.clone().to_float_arr();
-                        SELF_SCREEN_SIZE = self.screen_size.clone().to_arr();
-                        SIDE = self.side.clone();
-                    }
+                    set_remote_screen_size(rdev.screen_size.clone().to_float_arr());
+                    set_self_screen_size(self.screen_size.clone().to_arr());
+                    set_side(self.side.clone());
                 }
             }
             None => {}

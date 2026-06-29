@@ -3,7 +3,7 @@ use std::time::Duration;
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use tokio::time::interval;
 
-use crate::{global::state::STATE, web_api::dto::RemoteDevices};
+use crate::{global::STATE, web_api::dto::RemoteDevices};
 
 #[get("/sse")]
 async fn sse_handler(_req: HttpRequest) -> impl Responder {
