@@ -1,5 +1,10 @@
 #include "listener.h"
 
+// Disable GCC warning about comparisons that are always true
+// (e.g., unsigned >= 0 is always true, which is intentional in key range checks)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 struct Listener listener_context;
 int dev_i = 0;
 int mouse_x = 0, mouse_y = 0;
@@ -72,7 +77,7 @@ void handle_event(struct libevdev *dev)
                         break;
                     }
                 }
-                else if (ev_frame->type == EV_KEY && (KEY_RESERVED <= ev_frame->code && ev_frame->code <= KEY_MICMUTE ||
+                else if (ev_frame->type == EV_KEY && ((KEY_RESERVED <= ev_frame->code && ev_frame->code <= KEY_MICMUTE) ||
                                                       ev_frame->code == BTN_LEFT || ev_frame->code == BTN_RIGHT || ev_frame->code == BTN_MIDDLE || ev_frame->code == BTN_EXTRA || ev_frame->code == BTN_SIDE))
                 {
                     const char *name = libevdev_event_type_get_name(ev_frame->type);
@@ -236,7 +241,19 @@ void list_dir(const char *path)
         struct DevNode *node = (struct DevNode *)malloc(sizeof(struct DevNode));
         node->next = NULL;
 
-        snprintf(node->full_path, sizeof(node->full_path), "%s/%s", path, entry->d_name);
+        // Use strncpy to safely copy path and device name
+        size_t path_len = strlen(path);
+        size_t name_len = strlen(entry->d_name);
+        if (path_len + 1 + name_len < sizeof(node->full_path)) {
+            memcpy(node->full_path, path, path_len);
+            node->full_path[path_len] = '/';
+            memcpy(node->full_path + path_len + 1, entry->d_name, name_len);
+            node->full_path[path_len + 1 + name_len] = '\0';
+        } else {
+            // Path too long, truncate safely
+            strncpy(node->full_path, path, sizeof(node->full_path) - 1);
+            node->full_path[sizeof(node->full_path) - 1] = '\0';
+        }
 
         struct stat statbuf;
         if (stat(node->full_path, &statbuf) == -1)
@@ -318,8 +335,8 @@ DLL_EXPORT void listener_init(
         }
         if (
             libevdev_get_phys(dev) != NULL &&
-            (libevdev_has_event_type(dev, EV_REL) && libevdev_has_event_code(dev, EV_REL, REL_X) ||
-             libevdev_has_event_type(dev, EV_ABS) && libevdev_has_event_code(dev, EV_ABS, ABS_X)) &&
+            ((libevdev_has_event_type(dev, EV_REL) && libevdev_has_event_code(dev, EV_REL, REL_X)) ||
+             (libevdev_has_event_type(dev, EV_ABS) && libevdev_has_event_code(dev, EV_ABS, ABS_X))) &&
             libevdev_has_event_code(dev, EV_KEY, BTN_LEFT))
         {
             printf("mouse found: %s\n", f);
@@ -385,3 +402,5 @@ DLL_EXPORT void listener_setBlock(bool block)
         }
     }
 }
+
+#pragma GCC diagnostic pop

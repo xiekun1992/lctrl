@@ -2,6 +2,11 @@
 #include <linux/input-event-codes.h>
 #include "./scancode.h"
 
+// Disable GCC warning about initialized field overwritten
+// (KEY_YEN and KEY_LEFTMETA share the same value 125, which is intentional)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverride-init"
+
 static const int keys[] = {
     [KEY_RESERVED] = SCANCODE_RESERVED,
     [KEY_ESC] = SCANCODE_ESC,
@@ -375,6 +380,8 @@ static const int sc_to_key[] = {
     [SCANCODE_KPDOT] = KEY_KPDOT,
     [SCANCODE_KPSLASH] = KEY_KPSLASH,
     [SCANCODE_KPENTER] = KEY_KPENTER};
+
+#pragma GCC diagnostic pop
 
 int scancode_to_key(int scancode);
 int keycode_to_scancode(int keycode);

@@ -26,6 +26,15 @@ static void handle_geometry(void *data, struct wl_output *wl_output, int32_t x, 
                             int32_t physical_width, int32_t physical_height, int32_t subpixel,
                             const char *make, const char *model, int32_t transform)
 {
+    // Mark unused parameters to suppress warnings
+    (void)wl_output;
+    (void)physical_width;
+    (void)physical_height;
+    (void)subpixel;
+    (void)make;
+    (void)model;
+    (void)transform;
+    
     // This callback is for output geometry, usually we don't need to handle this for resolution
     struct output *output = data;
     output->x = x;
@@ -35,6 +44,9 @@ static void handle_geometry(void *data, struct wl_output *wl_output, int32_t x, 
 static void handle_mode(void *data, struct wl_output *wl_output, uint32_t flags, int32_t width,
                         int32_t height, int32_t refresh)
 {
+    (void)wl_output;
+    (void)refresh;
+    
     if (flags & WL_OUTPUT_MODE_CURRENT)
     {
         struct output *output = data;
@@ -45,24 +57,37 @@ static void handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
 
 static void handle_done(void *data, struct wl_output *wl_output)
 {
+    (void)data;
+    (void)wl_output;
     // This callback is for when all output information is sent
 }
 
 static void handle_scale(void *data, struct wl_output *wl_output, int32_t factor)
 {
+    (void)data;
+    (void)wl_output;
+    (void)factor;
     // This callback is for output scale, usually not needed for resolution
 }
 
+// Wayland 4.0+ added 'name' callback, Wayland 5.0+ added 'description'
+// Use NULL for compatibility with older versions
 static const struct wl_output_listener output_listener = {
     handle_geometry,
     handle_mode,
     handle_done,
-    handle_scale};
+    handle_scale,
+    NULL,  // name callback (Wayland 4.0+, optional)
+    NULL   // description callback (Wayland 5.0+, optional)
+};
 
 // Listener for registry events
 static void registry_handler(void *data, struct wl_registry *registry, uint32_t id,
                              const char *interface, uint32_t version)
 {
+    (void)data;
+    (void)version;
+    
     if (strcmp(interface, wl_output_interface.name) == 0)
     {
         struct wl_output *output = wl_registry_bind(registry, id, &wl_output_interface, 1);
@@ -74,6 +99,9 @@ static void registry_handler(void *data, struct wl_registry *registry, uint32_t 
 
 static void registry_remover(void *data, struct wl_registry *registry, uint32_t id)
 {
+    (void)data;
+    (void)registry;
+    (void)id;
     // Handle removal of registry objects if necessary
 }
 

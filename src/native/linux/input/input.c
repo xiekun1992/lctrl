@@ -24,7 +24,9 @@ void emit(uint16_t type, uint16_t code, int32_t val, bool syn_report)
     ie.type = type;
     ie.code = code;
     ie.value = val;
-    write(input_context.fd, &ie, sizeof(ie));
+    if (write(input_context.fd, &ie, sizeof(ie)) < 0) {
+        // Write failed, but we continue as this is non-blocking
+    }
 
     if (syn_report)
     {
@@ -32,7 +34,9 @@ void emit(uint16_t type, uint16_t code, int32_t val, bool syn_report)
         ie.type = EV_SYN;
         ie.code = SYN_REPORT;
         ie.value = 0;
-        write(input_context.fd, &ie, sizeof(ie));
+        if (write(input_context.fd, &ie, sizeof(ie)) < 0) {
+            // Write failed, but we continue as this is non-blocking
+        }
     }
 }
 
@@ -42,12 +46,14 @@ DLL_EXPORT void keyboard_init()
 
 DLL_EXPORT bool keydown(int *scancodes, int len)
 {
+    (void)len;  // Parameter not used but required for API compatibility
     int keycode = scancode_to_key(scancodes[0]);
     emit(EV_KEY, keycode, 1, 1);
     return true;
 }
 DLL_EXPORT bool keyup(int *scancodes, int len)
 {
+    (void)len;  // Parameter not used but required for API compatibility
     int keycode = scancode_to_key(scancodes[0]);
     emit(EV_KEY, keycode, 0, 1);
     return true;
@@ -115,14 +121,14 @@ DLL_EXPORT void mouse_init(int left, int top, int right, int bottom)
         BTN_FORWARD, BTN_BACK, BTN_TASK}; //, BTN_JOYSTICK, BTN_TRIGGER, BTN_THUMB, BTN_THUMB2, BTN_TOP, BTN_TOP2, BTN_PINKIE, BTN_BASE, BTN_BASE2, BTN_BASE3, BTN_BASE4, BTN_BASE5, BTN_BASE6, BTN_DEAD, BTN_GAMEPAD, BTN_SOUTH, BTN_A, BTN_EAST, BTN_B, BTN_C, BTN_NORTH, BTN_X, BTN_WEST, BTN_Y, BTN_Z, BTN_TL, BTN_TR, BTN_TL2, BTN_TR2, BTN_SELECT, BTN_START, BTN_MODE, BTN_THUMBL, BTN_THUMBR, BTN_DIGI, BTN_TOOL_PEN, BTN_TOOL_RUBBER, BTN_TOOL_BRUSH, BTN_TOOL_PENCIL, BTN_TOOL_AIRBRUSH, BTN_TOOL_FINGER, BTN_TOOL_MOUSE, BTN_TOOL_LENS, BTN_TOOL_QUINTTAP, BTN_TOUCH, BTN_STYLUS, BTN_STYLUS2, BTN_TOOL_DOUBLETAP, BTN_TOOL_TRIPLETAP, BTN_TOOL_QUADTAP, BTN_WHEEL, BTN_GEAR_DOWN, BTN_GEAR_UP, BTN_DPAD_UP, BTN_DPAD_DOWN, BTN_DPAD_LEFT, BTN_DPAD_RIGHT, BTN_TRIGGER_HAPPY, BTN_TRIGGER_HAPPY1, BTN_TRIGGER_HAPPY2, BTN_TRIGGER_HAPPY3, BTN_TRIGGER_HAPPY4, BTN_TRIGGER_HAPPY5, BTN_TRIGGER_HAPPY6, BTN_TRIGGER_HAPPY7, BTN_TRIGGER_HAPPY8, BTN_TRIGGER_HAPPY9, BTN_TRIGGER_HAPPY10, BTN_TRIGGER_HAPPY11, BTN_TRIGGER_HAPPY12, BTN_TRIGGER_HAPPY13, BTN_TRIGGER_HAPPY14, BTN_TRIGGER_HAPPY15, BTN_TRIGGER_HAPPY16, BTN_TRIGGER_HAPPY17, BTN_TRIGGER_HAPPY18, BTN_TRIGGER_HAPPY19, BTN_TRIGGER_HAPPY20, BTN_TRIGGER_HAPPY21, BTN_TRIGGER_HAPPY22, BTN_TRIGGER_HAPPY23, BTN_TRIGGER_HAPPY24, BTN_TRIGGER_HAPPY25, BTN_TRIGGER_HAPPY26, BTN_TRIGGER_HAPPY27, BTN_TRIGGER_HAPPY28, BTN_TRIGGER_HAPPY29, BTN_TRIGGER_HAPPY30, BTN_TRIGGER_HAPPY31, BTN_TRIGGER_HAPPY32, BTN_TRIGGER_HAPPY33, BTN_TRIGGER_HAPPY34, BTN_TRIGGER_HAPPY35, BTN_TRIGGER_HAPPY36, BTN_TRIGGER_HAPPY37, BTN_TRIGGER_HAPPY38, BTN_TRIGGER_HAPPY39, BTN_TRIGGER_HAPPY40};
     ioctl(input_context.fd, UI_SET_EVBIT, EV_KEY);
     ioctl(input_context.fd, UI_SET_KEYBIT, KEY_MENU);
-    for (int i = 0; i < sizeof(keys) / sizeof(int); i++)
+    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
     {
         ioctl(input_context.fd, UI_SET_KEYBIT, keys[i]);
     }
 
     ioctl(input_context.fd, UI_SET_EVBIT, EV_REL);
     static const int rel_list[] = {REL_X, REL_Y, REL_Z, REL_WHEEL, REL_HWHEEL};
-    for (int i = 0; i < sizeof(rel_list) / sizeof(int); i++)
+    for (size_t i = 0; i < sizeof(rel_list) / sizeof(rel_list[0]); i++)
     {
         ioctl(input_context.fd, UI_SET_RELBIT, rel_list[i]);
     }
@@ -130,7 +136,7 @@ DLL_EXPORT void mouse_init(int left, int top, int right, int bottom)
     ioctl(input_context.fd, UI_SET_EVBIT, EV_ABS);
     static const int abs[] = {ABS_X, ABS_Y};
     //, ABS_MT_SLOT, ABS_MT_TRACKING_ID, ABS_MT_POSITION_X, ABS_MT_POSITION_Y, ABS_PRESSURE, ABS_MT_PRESSURE};
-    for (int i = 0; i < sizeof(abs) / sizeof(int); i++)
+    for (size_t i = 0; i < sizeof(abs) / sizeof(abs[0]); i++)
     {
         ioctl(input_context.fd, UI_SET_ABSBIT, abs[i]);
     }
@@ -152,7 +158,9 @@ DLL_EXPORT void mouse_init(int left, int top, int right, int bottom)
     usetup.absfuzz[ABS_Y] = 0;
     usetup.absflat[ABS_Y] = 0;
 
-    write(input_context.fd, &usetup, sizeof(usetup));
+    if (write(input_context.fd, &usetup, sizeof(usetup)) < 0) {
+        // Write failed, handle error if needed
+    }
     // ioctl(input_context.fd, UI_DEV_SETUP, &usetup);
     ioctl(input_context.fd, UI_DEV_CREATE);
 
